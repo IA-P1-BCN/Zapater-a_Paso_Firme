@@ -22,6 +22,14 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
 
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+
 volumes:
   tienda_data:
   n8n_data:
