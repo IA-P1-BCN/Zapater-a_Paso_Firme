@@ -1,0 +1,343 @@
+{
+  "name": "HU-03 - Abonos por Bizum o Transferencia",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "n8nUserAuth",
+        "formTitle": "Correo del banco",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "correo",
+              "fieldType": "textarea",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "id": "52aac04b-c00d-455f-933e-68c40218a1bf",
+      "name": "On form submission",
+      "webhookId": "f4b91fff-33e6-458d-8ba2-c42176449e5e"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        160,
+        208
+      ],
+      "id": "c75688e4-67bf-4672-ab2b-d88b183b5dd9",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "utQj4uuRWElVHmwP",
+          "name": "Groq"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "7b5e4e4f-7438-4837-821c-0eeb93f87769",
+              "leftValue": "={{ $json.output.es_pago }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        592,
+        0
+      ],
+      "id": "4be1e5a8-247d-4072-9fcb-acf5254d8ad1",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        800,
+        208
+      ],
+      "id": "ded206c0-e77e-4923-9d81-12bc01846f89",
+      "name": "ignorar correo"
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/apartados?estado=activo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        816,
+        -16
+      ],
+      "id": "82156e5c-d014-4daf-a855-c52edb0ef2b6",
+      "name": "Encargos pendientes",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const datos = $('Extraer datos').first().json.output;\n\nconst bruto = $input.all().map(function(i){ return i.json; });\nconst lista = [];\nfor (const b of bruto) {\n  if (Array.isArray(b)) {\n    for (const x of b) lista.push(x);\n  } else if (b && b.id) {\n    lista.push(b);\n  } else if (b && Array.isArray(b.apartados)) {\n    for (const x of b.apartados) lista.push(x);\n  }\n}\nconst activos = lista.filter(function(e){ return e && e.id && e.estado === 'activo'; });\n\nfunction norm(s) {\n  return (s || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9 ]/g, ' ')\n    .trim();\n}\n\nlet candidatos = [];\nconst concepto = norm(datos.concepto);\nconst m = concepto.match(/(apartado|pedido|encargo)\\s*(\\d+)/);\nif (m) {\n  const num = Number(m[2]);\n  candidatos = activos.filter(function(e){ return e.id === num; });\n} else {\n  const t = norm(datos.ordenante).split(/\\s+/).filter(Boolean);\n  candidatos = activos.filter(function(e){\n    const c = norm(e.cliente).split(/\\s+/);\n    if (t.length < 2) return false;\n    if (c[0] !== t[0]) return false;\n    for (let i = 1; i < c.length; i++) {\n      if (c[i].indexOf(t[1]) === 0) return true;\n      if (t[1].indexOf(c[i]) === 0) return true;\n    }\n    return false;\n  });\n}\n\nconst importe = Number(datos.importe);\nlet forma = datos.forma_pago;\nif (forma === 'transferencia') forma = 'bizum';\n\nconst base = {\n  ordenante: datos.ordenante,\n  importe: importe,\n  forma_pago: forma,\n  concepto: datos.concepto\n};\n\nif (candidatos.length !== 1) {\n  const motivo = candidatos.length\n    ? 'Hay varios apartados posibles'\n    : 'No he encontrado ningun apartado activo de esa persona';\n  return [{ json: Object.assign({}, base, { decision: 'revisar', motivo: motivo }) }];\n}\n\nconst e = candidatos[0];\nconst hoy = new Date().toISOString().slice(0, 10);\n\nif (importe > Number(e.pendiente)) {\n  const motivo = 'Paga ' + importe + ' EUR pero al apartado #' + e.id + ' solo le faltan ' + e.pendiente + ' EUR';\n  return [{ json: Object.assign({}, base, { decision: 'revisar', apartado_id: e.id, motivo: motivo }) }];\n}\n\nif (e.fecha_limite < hoy) {\n  const motivo = 'El apartado #' + e.id + ' esta fuera de plazo (limite: ' + e.fecha_limite + ')';\n  return [{ json: Object.assign({}, base, { decision: 'revisar', apartado_id: e.id, motivo: motivo }) }];\n}\n\nreturn [{ json: Object.assign({}, base, { decision: 'registrar', apartado_id: e.id, motivo: 'Coincide con un unico apartado' }) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -16
+      ],
+      "id": "4d550d45-de2f-45d9-8154-1ca209dcaf67",
+      "name": "Buscar el encargo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "2585bd38-2635-4e5e-b882-561d6dd5fb33",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "registrar",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1264,
+        -16
+      ],
+      "id": "de65594d-b987-4f61-bf1c-baaebec0bdf8",
+      "name": "¿Se puede registrar?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://tienda:8000/api/apartados/{{ $json.apartado_id }}/abonos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"importe\": {{ $json.importe }},\n  \"forma_pago\": \"{{ $json.forma_pago }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1488,
+        -112
+      ],
+      "id": "6f5b3294-e505-40ff-b25a-88bd0b9a76b3",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "zapateria@example.com",
+        "toEmail": "marisa@zapateria.example",
+        "subject": "=Pago para revisar: {{ $json.importe }} € de {{ $json.ordenante }}",
+        "emailFormat": "text",
+        "text": "=Hola Marisa,\n\nHa llegado un pago y no lo he registrado.\n\nMotivo: {{ $json.motivo }}\n\nOrdenante: {{ $json.ordenante }}\nImporte: {{ $json.importe }} €\nForma: {{ $json.forma }}\nConcepto: {{ $json.concepto }}\n\nRegístralo tú si es correcto.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1488,
+        80
+      ],
+      "id": "ab1058df-59cf-4c5c-a242-ec57d8e189c3",
+      "name": "Send an Email",
+      "webhookId": "285a7759-3554-4444-9132-d289f7edbff4",
+      "credentials": {
+        "smtp": {
+          "id": "eHXPDCqGJYZp1rLm",
+          "name": "API Zapateria"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.correo }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"es_pago\": true,\n  \"ordenante\": \"\",\n  \"importe\": 0,\n  \"forma_pago\": \"\",\n  \"concepto\": \"\"\n}",
+        "options": {
+          "systemPromptTemplate": "Eres un asistente que lee avisos del banco para la zapatería Paso Firme.\nLee el correo y decide si avisa de un pago recibido (Bizum o transferencia):\n- Si es un pago: es_pago = true\n- Si es publicidad, ofertas u otra cosa que no sea un pago: es_pago = false\n\nSi es un pago, extrae estos datos del texto del correo:\n- ordenante: nombre de quien paga (puede venir en mayúsculas, déjalo tal cual)\n- importe: la cantidad en euros, convertida a número con punto decimal\n  (por ejemplo, \"10,00 EUR\" → 10.0, \"12,00 EUR\" → 12.0)\n- forma_pago: \"bizum\" o \"transferencia\"\n- concepto: el texto del concepto tal como aparece\n\nSi un dato no aparece en el correo, déjalo vacío.\nNo inventes ni completes datos que no estén escritos."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2849906b-8b01-4206-a731-a64e36ecfe1c",
+      "name": "Extraer datos"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extraer datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extraer datos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Encargos pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ignorar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encargos pendientes": {
+      "main": [
+        [
+          {
+            "node": "Buscar el encargo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar el encargo": {
+      "main": [
+        [
+          {
+            "node": "¿Se puede registrar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se puede registrar?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer datos": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a6dab6b8-7a7e-4563-b374-0568053c469b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "db8b9bef991e2c0b262c679e13963e63f935246d87c2e69f3f347f6c44148da5"
+  },
+  "nodeGroups": [],
+  "id": "neGqa5dnnX9ryiag",
+  "tags": []
+}
