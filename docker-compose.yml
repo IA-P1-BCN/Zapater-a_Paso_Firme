@@ -22,6 +22,14 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "8025:8025"   # Interfaz web (navegador)
+      - "1025:1025"   # Servidor SMTP (n8n)
+    restart: unless-stopped
+
 volumes:
   tienda_data:
   n8n_data:
