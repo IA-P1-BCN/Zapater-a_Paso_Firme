@@ -23,6 +23,7 @@ services:
       - n8n_data:/home/node/.n8n
 
   mailpit:
+
     image: axllent/mailpit
     ports:
       - "8025:8025"
