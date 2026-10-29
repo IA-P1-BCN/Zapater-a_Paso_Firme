@@ -550,3 +550,52 @@ El botón **Publish** de n8n 2.x solo aplica a los triggers con algo que poner e
 - Documentar en la spec de HU-03 por qué se usó un formulario.
 - Importar `HU-05` y eliminar `session2-00-error`.
 
+## Entrada — Arreglo de la demo y auditoría previa (29/10/2026)
+
+- **Fecha:** 29/10/2026
+- **Herramienta:** OpenCode
+- **Rama:** `dev`
+- **Contexto:** Víspera de la presentación. La demo «crear un apartado y que llegue el correo» no funcionaba.
+
+### Qué fallaba
+
+- El flujo que escuchaba en la instancia era `01 Eventos de la zapateria`, con el path `zapateria` (la app llama a `/webhook/tienda` → **404**) y un Switch que comparaba con `encargo.creado` / `pago.registrado`, los nombres de la pastelería. **Nunca tuvo una sola ejecución.**
+- El HU-01 del repo se había convertido en un subflujo (`executeWorkflowTrigger`) que esperaba un enrutador que no estaba importado.
+- La credencial SMTP del repo (`SwfZwWbtMvYyq5bi`) no existía en la instancia; la real es `eHXPDCqGJYZp1rLm`.
+- El correo del cierre salía con `\n` literales y con la firma de n8n.
+
+### Qué se hizo
+
+- Flujo nuevo **`01 · Confirmación y recibos`** (12 nodos): webhook `/tienda` → Switch por `body.evento`.
+  - `apartado.creado` → validaciones (datos completos, email) → confirmación al cliente.
+  - `abono.registrado` → recibo con lo pagado y lo pendiente; si `estado = liquidado`, «ya puedes recoger tus zapatos».
+  - Reutiliza el Code de validación y formato del HU-01 del repo.
+- **HU-05** importado y conectado como Error Workflow en los seis flujos que lo necesitan.
+- Nombres genéricos corregidos: `HTTP Request` → `Registrar abono`, `If` → `¿Es un correo de pago?`, `Send an Email` → `Avisar a Marisa (pago dudoso)`, `Code in JavaScript` → `Resumir el día`, `Schedule Trigger` → `Cada mañana a las 9:00` / `Primer día del mes`.
+- Archivados: `01 Eventos de la zapateria`, `04 Aviso de vencimiento mañana` (duplicaba el 06), `session2-00-error` y `HU-03 · Abonos por Bizum`.
+- Reintento (3 intentos, 3 s) en las lecturas HTTP.
+- Correo del cierre: `text` → `={{ $json.texto }}` y `appendAttribution: false`.
+- Exportados los siete flujos a `workflows/` con `active: false` y nombres por número de flujo.
+
+### Pruebas (instancia real)
+
+| Caso | Resultado |
+|---|---|
+| Crear apartado | correo «Resumen de tu apartado» con los importes de la app |
+| Abono parcial de 15 € | correo «Recibo de tu abono»: 15 € pagados, 25 € pendientes |
+| Abono final de 25 € | correo «¡Ya puedes recoger tus zapatos!» |
+| Evento con datos incompletos | aviso a Marisa; no se envía nada al cliente |
+| Abono sin email | falla el nodo de correo → HU-05 avisa con flujo, nodo y enlace |
+| Cierre diario | correo con los 4 abonos del día y total 60 € |
+| `/webhook/tienda` | 200 · `/webhook/zapateria` y rutas viejas: 404 |
+
+### Errores del agente
+
+- `import:workflow` **sobrescribe** si el JSON conserva el `id`: una copia de prueba del cierre sustituyó al original. Se restauró desde el JSON exportado y se repitió la prueba con una copia **sin** `id`.
+- Archivar en SQL **no despublica**: el webhook de la copia seguía respondiendo hasta ejecutar `unpublish:workflow`.
+- La primera auditoría de expresiones daba falsos positivos: marcaba como rotas las que sí tenían el prefijo `=` correcto.
+
+### Decisión pendiente
+
+- El repo contiene `00-enrutador-de-la-tienda.json` y `HU-09-aviso-de-ventas-grandes.json` (rama del enrutador) que **no están desplegados**. Se ha consolidado enrutador + confirmación + recibos en el flujo 01. Hay que decidir si se mantiene el enrutador o se retira del repo.
+

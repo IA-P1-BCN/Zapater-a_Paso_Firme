@@ -1,0 +1,110 @@
+[
+  {
+    "updatedAt": "2026-10-29T14:05:30.000Z",
+    "createdAt": "2026-10-27T12:09:07.292Z",
+    "id": "hu05avisoserror",
+    "name": "HU-05. Avisar de errores",
+    "description": "Avisa a la tienda cuando falla cualquier flujo (flujo 8).",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "7f1a2b3c-4d5e-4f60-8712-3456789abcde",
+        "name": "Si falla un flujo",
+        "type": "n8n-nodes-base.errorTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "b1c2d3e4-5f60-4a71-8b92-0c1d2e3f4a5b",
+        "name": "Preparar aviso",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "jsCode": "// Prepara el aviso de error para la tienda.\n// Solo usa nombre del flujo, paso, mensaje y enlace: nunca parametros ni credenciales.\n\nconst data = $json || {};\nconst flujoRaw = data.workflow || {};\nconst ejecucion = data.execution || {};\nconst error = ejecucion.error || {};\n\nconst aTexto = (v) => (v === undefined || v === null ? '' : String(v));\n\n// Oculta cualquier valor que parezca una credencial (password=..., api_key: ..., Bearer ...).\nconst limpiar = (valor, maximo) => {\n  let texto = aTexto(valor).replace(/\\s+/g, ' ').trim();\n  texto = texto.replace(\n    /(password|passwd|pwd|api[_-]?key|apikey|token|secret|authorization)\\s*[:=]\\s*(\"[^\"]*\"|'[^']*'|[^\\s,;]+)/gi,\n    '$1=***',\n  );\n  texto = texto.replace(/bearer\\s+[a-z0-9._\\-]+/gi, 'Bearer ***');\n  texto = texto.replace(/\\s*\\[line \\d+\\]\\s*$/i, '');\n  if (maximo && texto.length > maximo) texto = texto.slice(0, maximo).trimEnd() + '...';\n  return texto;\n};\n\n// dd/mm/aaaa hh:mm sin depender de la configuracion regional del contenedor.\nconst fecha = (iso) => {\n  const m = aTexto(iso).match(/^(\\d{4})-(\\d{2})-(\\d{2})[T ](\\d{2}):(\\d{2})/);\n  return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : '';\n};\n\nconst flujo = limpiar(flujoRaw.name, 120) || 'flujo desconocido';\nconst paso = limpiar(ejecucion.lastNodeExecuted || (error.node && error.node.name) || '', 120) || 'paso desconocido';\nconst mensaje = limpiar(error.message, 300) || 'sin mensaje de error';\n// El Error Trigger no incluye la hora de inicio: se usa el momento del aviso.\nconst cuando = fecha(new Date().toISOString());\nconst enlace = limpiar(ejecucion.url, 300);\n\nconst lineas = [\n  'Hola Marisa:',\n  '',\n  'Una automatización ha fallado.',\n  '',\n  'Flujo:  ' + flujo,\n  'Paso:   ' + paso,\n  'Error:  ' + mensaje,\n];\nif (cuando) lineas.push('Cuándo: ' + cuando);\nif (enlace) lineas.push('Enlace: ' + enlace);\nlineas.push('', 'Revisa la ejecución en n8n para ver el detalle.');\n\nreturn [\n  {\n    json: {\n      flujo,\n      paso,\n      mensaje,\n      cuando,\n      enlace,\n      asunto: 'Ha fallado el flujo «' + flujo + '»',\n      cuerpo: lineas.join('\\n'),\n    },\n  },\n];\n",
+          "options": {}
+        }
+      },
+      {
+        "id": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+        "name": "Avisar a la tienda",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "fromEmail": "zapateria@example.com",
+          "toEmail": "marisa@zapateria.example",
+          "subject": "={{ $json.asunto }}",
+          "emailFormat": "text",
+          "text": "={{ $json.cuerpo }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "credentials": {
+          "smtp": {
+            "id": "eHXPDCqGJYZp1rLm",
+            "name": "API Zapateria"
+          }
+        },
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000
+      }
+    ],
+    "connections": {
+      "Si falla un flujo": {
+        "main": [
+          [
+            {
+              "node": "Preparar aviso",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar aviso": {
+        "main": [
+          [
+            {
+              "node": "Avisar a la tienda",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "664dc236-62a4-4b25-aeb2-3036c017e2d4",
+    "activeVersionId": "664dc236-62a4-4b25-aeb2-3036c017e2d4",
+    "versionCounter": 5,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]

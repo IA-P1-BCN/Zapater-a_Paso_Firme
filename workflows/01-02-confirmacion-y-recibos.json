@@ -1,0 +1,491 @@
+[
+  {
+    "updatedAt": "2026-10-29T14:05:27.000Z",
+    "createdAt": "2026-10-29T14:05:13.186Z",
+    "id": "NARKEYP8WjLOXW8O",
+    "name": "01 · Confirmación y recibos",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "tienda",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.2,
+        "position": [
+          -1560,
+          0
+        ],
+        "id": "a1000000-0000-4000-8000-000000000001",
+        "name": "Evento de la tienda",
+        "webhookId": "7f1e2d3c-4b5a-4968-8776-655443322110"
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 4
+                  },
+                  "conditions": [
+                    {
+                      "id": "a1000000-0000-4000-8000-000000000011",
+                      "leftValue": "={{ $json.body.evento }}",
+                      "rightValue": "apartado.creado",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "apartado.creado"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 4
+                  },
+                  "conditions": [
+                    {
+                      "id": "a1000000-0000-4000-8000-000000000012",
+                      "leftValue": "={{ $json.body.evento }}",
+                      "rightValue": "abono.registrado",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "abono.registrado"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.5,
+        "position": [
+          -1340,
+          0
+        ],
+        "id": "a1000000-0000-4000-8000-000000000002",
+        "name": "Según el evento"
+      },
+      {
+        "parameters": {
+          "jsCode": "// La app es la fuente de verdad: aqui solo se valida y se da formato.\nconst body = $json.body || $json;\nconst datos = body.datos || {};\n\nconst obligatorios = ['id', 'cliente', 'producto', 'precio', 'abonado', 'pendiente', 'fecha_limite'];\nconst faltan = obligatorios.filter((k) => datos[k] === undefined || datos[k] === null || datos[k] === '');\n\n// Formato espanol sin depender de la configuracion regional del contenedor.\nconst eur = (n) => {\n  const num = Number(n);\n  if (!Number.isFinite(num)) return '(sin importe)';\n  const [ent, dec] = num.toFixed(2).split('.');\n  return ent.replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.') + ',' + dec + ' €';\n};\n\nconst fecha = (iso) => {\n  const m = String(iso || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})/);\n  return m ? m[3] + '/' + m[2] + '/' + m[1] : String(iso || '(sin fecha)');\n};\n\nconst id = datos.id === undefined || datos.id === null ? 'desconocido' : datos.id;\nconst cliente = datos.cliente || 'cliente sin nombre';\nconst producto = datos.producto || 'producto sin indicar';\nconst talla = datos.talla ? ' · Talla ' + datos.talla : '';\nconst telefono = datos.telefono || 'No indicado';\nconst email = typeof datos.email === 'string' ? datos.email.trim() : '';\n\nconst texto_cliente = [\n  'Hola ' + cliente + ':',\n  '',\n  'Hemos apartado tus zapatos:',\n  '',\n  '- Producto: ' + producto + talla,\n  '- Precio total: ' + eur(datos.precio),\n  '- Abonado hoy: ' + eur(datos.abonado),\n  '- Pendiente: ' + eur(datos.pendiente),\n  '- Fecha límite: ' + fecha(datos.fecha_limite),\n  '',\n  'Puedes pasarte por la tienda antes de esa fecha para completar el pago y recogerlos.',\n  '',\n  '¡Gracias!',\n].join('\\n');\n\nconst texto_sin_email = [\n  'Aviso: el apartado #' + id + ' de ' + cliente + ' se ha creado sin email,',\n  'así que no se ha podido enviar la confirmación.',\n  '',\n  '- Teléfono: ' + telefono,\n  '- Producto: ' + producto + talla,\n  '- Precio total: ' + eur(datos.precio),\n  '- Abonado hoy: ' + eur(datos.abonado),\n  '- Pendiente: ' + eur(datos.pendiente),\n  '- Fecha límite: ' + fecha(datos.fecha_limite),\n  '',\n  'Contacta con el cliente para confirmarle el plazo.',\n].join('\\n');\n\nconst texto_incompleto = [\n  'El evento apartado.creado ha llegado sin los datos necesarios',\n  'y NO se ha enviado ninguna confirmación al cliente.',\n  '',\n  '- Apartado: ' + id,\n  '- Cliente: ' + cliente,\n  '- Faltan: ' + (faltan.length ? faltan.join(', ') : 'ninguno'),\n  '- Datos recibidos: ' + JSON.stringify(datos),\n  '',\n  'Revisa el evento en la app o en la ejecución de n8n.',\n].join('\\n');\n\nreturn [{\n  json: {\n    ...datos,\n    id,\n    email,\n    tiene_email: email ? 1 : 0,\n    faltan,\n    faltan_count: faltan.length,\n    texto_cliente,\n    texto_sin_email,\n    texto_incompleto,\n  },\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1100,
+          -200
+        ],
+        "id": "a1000000-0000-4000-8000-000000000003",
+        "name": "Preparar confirmación"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 4
+            },
+            "conditions": [
+              {
+                "id": "a1000000-0000-4000-8000-000000000021",
+                "leftValue": "={{ $json.faltan_count }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.4,
+        "position": [
+          -880,
+          -200
+        ],
+        "id": "a1000000-0000-4000-8000-000000000004",
+        "name": "¿Datos completos?"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 4
+            },
+            "conditions": [
+              {
+                "id": "a1000000-0000-4000-8000-000000000022",
+                "leftValue": "={{ $json.tiene_email }}",
+                "rightValue": 1,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.4,
+        "position": [
+          -660,
+          -200
+        ],
+        "id": "a1000000-0000-4000-8000-000000000005",
+        "name": "¿Tiene email?"
+      },
+      {
+        "parameters": {
+          "fromEmail": "zapateria@example.com",
+          "toEmail": "={{ $json.email }}",
+          "subject": "=Resumen de tu apartado Nº {{ $json.id }} - Zapatería Paso Firme",
+          "emailFormat": "text",
+          "text": "={{ $json.texto_cliente }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          -440,
+          -320
+        ],
+        "id": "a1000000-0000-4000-8000-000000000006",
+        "name": "Enviar confirmación al cliente",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000,
+        "credentials": {
+          "smtp": {
+            "id": "eHXPDCqGJYZp1rLm",
+            "name": "API Zapateria"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "fromEmail": "zapateria@example.com",
+          "toEmail": "marisa@zapateria.example",
+          "subject": "=Aviso: apartado Nº {{ $json.id }} sin email ({{ $json.cliente }})",
+          "emailFormat": "text",
+          "text": "={{ $json.texto_sin_email }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          -440,
+          -200
+        ],
+        "id": "a1000000-0000-4000-8000-000000000007",
+        "name": "Avisar a Marisa: sin email",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000,
+        "credentials": {
+          "smtp": {
+            "id": "eHXPDCqGJYZp1rLm",
+            "name": "API Zapateria"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "fromEmail": "zapateria@example.com",
+          "toEmail": "marisa@zapateria.example",
+          "subject": "=Aviso: evento apartado.creado incompleto (apartado {{ $json.id }})",
+          "emailFormat": "text",
+          "text": "={{ $json.texto_incompleto }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          -660,
+          -80
+        ],
+        "id": "a1000000-0000-4000-8000-000000000008",
+        "name": "Avisar a Marisa: datos incompletos",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000,
+        "credentials": {
+          "smtp": {
+            "id": "eHXPDCqGJYZp1rLm",
+            "name": "API Zapateria"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// El importe y el estado vienen de la app: aqui solo se da formato.\nconst body = $json.body || $json;\nconst d = body.datos || {};\n\nconst eur = (n) => {\n  const num = Number(n);\n  if (!Number.isFinite(num)) return '(sin importe)';\n  const [ent, dec] = num.toFixed(2).split('.');\n  return ent.replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.') + ',' + dec + ' €';\n};\n\nconst id = d.id === undefined || d.id === null ? 'desconocido' : d.id;\nconst cliente = d.cliente || 'cliente sin nombre';\nconst producto = d.producto || 'tus zapatos';\nconst email = typeof d.email === 'string' ? d.email.trim() : '';\n\nconst texto_recibo = [\n  'Hola ' + cliente + ':',\n  '',\n  'Hemos recibido tu abono:',\n  '',\n  '- Producto: ' + producto,\n  '- Has pagado ahora: ' + eur(d.importe),\n  '- Total abonado: ' + eur(d.abonado),\n  '- Te queda por pagar: ' + eur(d.pendiente),\n  '',\n  'Gracias por tu compra.',\n].join('\\n');\n\nconst texto_liquidado = [\n  'Hola ' + cliente + ':',\n  '',\n  '¡Ya está pagado! Tu apartado está completo.',\n  '',\n  '- Producto: ' + producto,\n  '- Total pagado: ' + eur(d.abonado),\n  '',\n  'Puedes pasarte por la tienda a recoger tus zapatos.',\n  '',\n  '¡Gracias!',\n].join('\\n');\n\nreturn [{\n  json: {\n    ...d,\n    id,\n    email,\n    tiene_email: email ? 1 : 0,\n    texto_recibo,\n    texto_liquidado,\n  },\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1100,
+          200
+        ],
+        "id": "a1000000-0000-4000-8000-000000000009",
+        "name": "Preparar recibo"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 4
+            },
+            "conditions": [
+              {
+                "id": "a1000000-0000-4000-8000-000000000023",
+                "leftValue": "={{ $json.estado }}",
+                "rightValue": "liquidado",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.4,
+        "position": [
+          -880,
+          200
+        ],
+        "id": "a1000000-0000-4000-8000-00000000000a",
+        "name": "¿Está liquidado?"
+      },
+      {
+        "parameters": {
+          "fromEmail": "zapateria@example.com",
+          "toEmail": "={{ $json.email }}",
+          "subject": "=Recibo de tu abono - Apartado Nº {{ $json.id }}",
+          "emailFormat": "text",
+          "text": "={{ $json.texto_recibo }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          -660,
+          120
+        ],
+        "id": "a1000000-0000-4000-8000-00000000000b",
+        "name": "Enviar recibo del abono",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000,
+        "credentials": {
+          "smtp": {
+            "id": "eHXPDCqGJYZp1rLm",
+            "name": "API Zapateria"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "fromEmail": "zapateria@example.com",
+          "toEmail": "={{ $json.email }}",
+          "subject": "=¡Ya puedes recoger tus zapatos! - Apartado Nº {{ $json.id }}",
+          "emailFormat": "text",
+          "text": "={{ $json.texto_liquidado }}",
+          "options": {
+            "appendAttribution": false
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          -660,
+          280
+        ],
+        "id": "a1000000-0000-4000-8000-00000000000c",
+        "name": "Avisar: ya puedes recoger",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000,
+        "credentials": {
+          "smtp": {
+            "id": "eHXPDCqGJYZp1rLm",
+            "name": "API Zapateria"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Evento de la tienda": {
+        "main": [
+          [
+            {
+              "node": "Según el evento",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Según el evento": {
+        "main": [
+          [
+            {
+              "node": "Preparar confirmación",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Preparar recibo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar confirmación": {
+        "main": [
+          [
+            {
+              "node": "¿Datos completos?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Datos completos?": {
+        "main": [
+          [
+            {
+              "node": "¿Tiene email?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Avisar a Marisa: datos incompletos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Tiene email?": {
+        "main": [
+          [
+            {
+              "node": "Enviar confirmación al cliente",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Avisar a Marisa: sin email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar recibo": {
+        "main": [
+          [
+            {
+              "node": "¿Está liquidado?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Está liquidado?": {
+        "main": [
+          [
+            {
+              "node": "Avisar: ya puedes recoger",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Enviar recibo del abono",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "errorWorkflow": "hu05avisoserror"
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "833ee2c5-6e3e-4c77-b344-b4d5a502d172",
+    "activeVersionId": "833ee2c5-6e3e-4c77-b344-b4d5a502d172",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  }
+]
