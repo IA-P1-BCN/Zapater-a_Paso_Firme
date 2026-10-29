@@ -116,7 +116,7 @@ Revisa la ejecución en n8n para ver el detalle.
 - [x] El aviso incluye el nombre del flujo, el paso y el mensaje de error.
 - [x] El aviso incluye el enlace a la ejecución fallida.
 - [x] El aviso no incluye contraseñas, claves ni tokens.
-- [ ] Todos los flujos exportados en `workflows/` tienen `settings.errorWorkflow` apuntando a HU-05. *(Hoy solo HU-01; el resto son flujos de otras ramas y se tocarán cuando se revisen.)*
+- [ ] Todos los flujos exportados en `workflows/` tienen `settings.errorWorkflow` apuntando a HU-05. *(Hoy solo HU-01; el resto se revisa en el issue #31.)*
 - [x] Un fallo de HU-05 no genera avisos en cadena. *(No se apunta a sí mismo.)*
 - [x] El envío tiene reintentos configurados (2 intentos, 3 s). *(El fallo del propio envío no se ha forzado para no tocar la credencial SMTP; queda como prueba pendiente.)*
 - [x] El workflow no accede a la base de datos ni a la API de la tienda.
