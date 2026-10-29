@@ -1,5 +1,5 @@
 {
-  "name": "02 Cierre diario",
+  "name": "02/05 Cierre diario",
   "nodes": [
     {
       "parameters": {
@@ -22,7 +22,46 @@
     },
     {
       "parameters": {
-        "url": "http://host.docker.internal:8000/api/ventas",
+        "fromEmail": "zapateria@example.com",
+        "toEmail": "marisa@zapateria.example",
+        "subject": "=Cierre de caja del {{ $json.fecha }}",
+        "emailFormat": "text",
+        "text": "=Hola Marisa,Resumen de hoy:{{ $json.resumen }}\\n\\n...",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        -144
+      ],
+      "id": "04f7eebd-7d70-452d-9db0-362e233fb53e",
+      "name": "Enviar cierre a Marisa",
+      "webhookId": "0cc6c181-293f-4fae-b7b3-045f1ad6d09d",
+      "alwaysOutputData": true,
+      "credentials": {
+        "smtp": {
+          "id": "eHXPDCqGJYZp1rLm",
+          "name": "API Zapateria"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Los HTTP pueden traer la lista partida en items o en un solo item: la desenvolvemos\nfunction desenvolver(nodo) {\n  const bruto = nodo.all().map(i => i.json);\n  const lista = [];\n  for (const b of bruto) {\n    if (Array.isArray(b)) { for (const x of b) lista.push(x); }\n    else if (b && b.id) { lista.push(b); }\n  }\n  return lista.filter(x => x && typeof x.importe === 'number');\n}\n\nconst ventas = desenvolver($('Ventas de hoy'));\nconst abonos = desenvolver($('Abonos de hoy'));\n\nfunction sumarPorForma(items) {\n  const por = {};\n  for (const it of items) por[it.forma_pago] = (por[it.forma_pago] || 0) + it.importe;\n  return por;\n}\n\nconst vPor = sumarPorForma(ventas);\nconst aPor = sumarPorForma(abonos);\nconst totalVentas = ventas.reduce((s, x) => s + x.importe, 0);\nconst totalAbonos = abonos.reduce((s, x) => s + x.importe, 0);\nconst total = totalVentas + totalAbonos;\n\nconst formas = ['efectivo', 'tarjeta', 'bizum'];\nconst lineas = [];\n\nlineas.push('VENTAS DIRECTAS (' + ventas.length + '):');\nif (ventas.length === 0) {\n  lineas.push('  (ninguna)');\n} else {\n  for (const f of formas) if (vPor[f]) lineas.push('  ' + f + ': ' + vPor[f].toFixed(2) + ' EUR');\n  lineas.push('  Total ventas: ' + totalVentas.toFixed(2) + ' EUR');\n}\n\nlineas.push('');\nlineas.push('ABONOS DE APARTADOS (' + abonos.length + '):');\nif (abonos.length === 0) {\n  lineas.push('  (ninguno)');\n} else {\n  for (const f of formas) if (aPor[f]) lineas.push('  ' + f + ': ' + aPor[f].toFixed(2) + ' EUR');\n  lineas.push('  Total abonos: ' + totalAbonos.toFixed(2) + ' EUR');\n}\n\nlineas.push('');\nlineas.push('TOTAL COBRADO HOY: ' + total.toFixed(2) + ' EUR');\nif (ventas.length === 0 && abonos.length === 0) {\n  lineas.push('(Hoy no se ha cobrado nada.)');\n}\n\nconst resumen = lineas.join('\\n');\nconst fecha = $now.toFormat('dd/MM/yyyy');\n\n// Tu texto original, pero con saltos de línea reales\nconst asunto = 'Cierre de caja del ' + fecha;\nconst texto = 'Hola Marisa,\\n\\n'\n  + 'Resumen de hoy:\\n\\n'\n  + resumen + '\\n\\n'\n  + 'Zapatería Paso Firme';\n\nreturn [{\n  json: {\n    fecha: fecha,\n    total: total.toFixed(2),\n    resumen: resumen,\n    asunto: asunto,\n    texto: texto\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -160
+      ],
+      "id": "bdf24875-e47c-40ba-a8e4-046190cc8db6",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/ventas",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -47,7 +86,7 @@
         0
       ],
       "id": "c59a013b-19c9-45d4-8923-0a37f2736478",
-      "name": "HTTP Request",
+      "name": "Ventas de hoy",
       "alwaysOutputData": true,
       "credentials": {
         "httpHeaderAuth": {
@@ -58,39 +97,37 @@
     },
     {
       "parameters": {
-        "jsCode": "const pagos = $input.all().map(i => i.json).filter(p => p.importe);\nconst porForma = {};\nfor (const p of pagos) porForma[p.forma_pago] = (porForma[p.forma_pago] || 0) + p.importe;\nconst total = pagos.reduce((s, p) => s + p.importe, 0);\nconst lineas = Object.entries(porForma).map(([forma, importe]) => `  ${forma}: ${importe.toFixed(2)} €`);\nreturn [{ json: {\n  fecha: $now.toFormat('dd/MM/yyyy'),\n  total: total.toFixed(2),\n  resumen: pagos.length ? lineas.join('\\n') : '  (hoy no se ha cobrado nada)',\n  n: pagos.length,\n} }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        448,
-        0
-      ],
-      "id": "bdf24875-e47c-40ba-a8e4-046190cc8db6",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
-        "fromEmail": "zapateria@example.com",
-        "toEmail": "marisa@lacuchara.example",
-        "subject": "=Cierre de caja del {{ $json.fecha }}",
-        "emailFormat": "text",
-        "text": "=Hola Marisa,\n\nHoy se han cobrado {{ $json.total }} € ({{ $json.n }} pagos):\n\n{{ $json.resumen }}",
+        "url": "http://tienda:8000/api/abonos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "desde",
+              "value": "={{ $now.format('yyyy-MM-dd') }}"
+            },
+            {
+              "name": "hasta",
+              "value": "={{ $now.format('yyyy-MM-dd') }}"
+            }
+          ]
+        },
         "options": {}
       },
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
       "position": [
-        672,
-        0
+        400,
+        -176
       ],
-      "id": "04f7eebd-7d70-452d-9db0-362e233fb53e",
-      "name": "Enviar cierre a Marisa",
-      "webhookId": "0cc6c181-293f-4fae-b7b3-045f1ad6d09d",
+      "id": "78742afa-f561-4e73-bbc6-bb6de9f5b643",
+      "name": "Abonos de hoy",
+      "alwaysOutputData": true,
       "credentials": {
-        "smtp": {
-          "id": "eHXPDCqGJYZp1rLm",
-          "name": "API Zapateria"
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
         }
       }
     }
@@ -101,18 +138,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript",
+            "node": "Ventas de hoy",
             "type": "main",
             "index": 0
           }
@@ -129,14 +155,40 @@
           }
         ]
       ]
+    },
+    "Ventas de hoy": {
+      "main": [
+        [
+          {
+            "node": "Abonos de hoy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abonos de hoy": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Lilo0zkcgABZtBGx",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "versionId": "6132e2bb-cb16-4d0c-96bd-cf7521313a51",
+  "versionId": "84b40266-fa1f-4bf4-a0ec-2174c9cc417e",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "db8b9bef991e2c0b262c679e13963e63f935246d87c2e69f3f347f6c44148da5"
