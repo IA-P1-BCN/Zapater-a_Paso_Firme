@@ -97,232 +97,47 @@ Registro de las interacciones con el agente de IA: herramienta y modelos utiliza
 | Evento distinto (`apartado.cancelado`) | El flujo no hace nada |
 | Email con formato inválido (106) | 3 intentos, ejecución en error y aviso del Error Workflow a la tienda |
 
----
+## Entrada — HU-05: Avisos de errores (flujo 8)
 
-## 📌 Nota sobre las entradas siguientes
-
-Añadidas el 29/10/2026. **Herramienta en todas:** OpenCode · modelo `MiMo-V2.6-Flash Free` (capa gratuita).
-
-> **Rama:** la copia local de trabajo no está inicializada como repositorio Git, así que no se pudo determinar la rama de cada HU. Completar con la rama real del repositorio.
-
----
-
-## Entrada — HU-10: Migración del Excel de Marisa
-
-- **Fecha:** 27–29/10/2026
-- **Tarea:** Migrar a la app los apartados y abonos que Marisa llevaba a mano en un Excel, usando la API.
+- **Fecha:** 27/10/2026
+- **Tarea:** Formalizar el flujo de avisos de errores: especificación, limpieza del mensaje, pruebas, exportación y documentación.
+- **Rama:** `5-hu-05-avisos-de-errores`
 - **Agente:** OpenCode
-- **Modelo:** MiMo-V2.6-Flash Free
-- **Contexto:** El histórico venía en CSV exportados del Excel (`data/excel_actual_ventas.csv` y el histórico). La app **no tenía importador ni endpoint de borrado**, así que la migración se hizo contra la API y debía ser **idempotente**: poderse ejecutar varias veces sin duplicar nada.
+- **Modelo:** DeepSeek V4.1 Flash Free (proveedor opencode, capa gratuita)
+- **Contexto:** El flujo existía como soporte de HU-01, pero solo enviaba un correo con los datos en crudo del Error Trigger: sin limpiar, sin redactar credenciales y con la hora vacía. La HU-05 pide que el aviso lleve flujo, paso y error, y que nunca incluya contraseñas ni claves.
 
-### Arquitectura (`workflows/HU-10.json`, 10 nodos)
+## Prompts clave
 
-`Ejecutar migración` (manual) → `Apartados en la app` + `Abonos en la app` (GET de lo ya cargado) → `Read/Write Files from Disk` → `Extract from File` → `Limpiar y clasificar` (Code) → `¿Es dudoso?` (IF) → rama verdadera → `Informe` → `Informe a Marisa`
+- «Bueno, tendría que realizar ahora el siguiente flujo: HU-05 · Avisos de errores (flujo 8) … desarrollando las especificaciones primero, para luego hacer el flujo y todo lo que se incluya».
 
-### Prompts clave
+## Cambios realizados
 
-- «Quiero que me arregles lo del CSV» (delegación explícita de la corrección tras el fallo de la primera versión).
-- «Lo que en el n8n no puedo publicarlo porque no hay trigger».
+- **Spec nueva:** `specs/8-avisos-de-errores.md` (ontología, entradas del Error Trigger, reglas, criterios de aceptación y pruebas).
+- **Nodo Code `Preparar aviso`:** aplica valores por defecto si faltan datos, limpia saltos de línea y espacios, **redacta credenciales** (`password`, `api_key`, `apikey`, `token`, `secret`, `authorization`, `Bearer ...`), quita el sufijo `[line N]` que añade n8n y recorta el mensaje a 300 caracteres.
+- **Nodo `Avisar a la tienda`:** sigue enviando texto plano sin pie de n8n, con 2 intentos y 3 s de espera.
+- **Exportación:** `workflows/HU-05-avisar-de-errores.json` sustituido por la versión definitiva (3 nodos).
+- **Limpieza:** borrado de la instancia el flujo temporal `ZZ prueba error (borrar)` y sus 3 ejecuciones.
 
-### Decisiones importantes
+## Errores / alucinaciones
 
-- **El nodo Merge se rechazó a propósito.** La documentación de n8n dice: *«The node waits for the execution of all connected inputs»*. Con una rama que a veces no se dispara, el flujo **se quedaría esperando para siempre**.
-- Los dudosos viajan como **campo** (un array `dudosos` dentro de cada item emitido), no como items sueltos. Así **solo se dispara una rama** del IF ⇒ **exactamente un correo**, nunca dos.
-- Por eso la condición del IF cambió de `tipo === 'dudoso'` a `tipo === 'nada'`.
-- Deduplicación de abonos con **dos señales**: la principal, `apartado.abonado >= precio - resta` (columna `resta` del CSV); la de respaldo, mismo `apartado_id` + `fecha` + `importe`.
-- Los importes se toman **tal cual de la API**, nunca se recalculan en n8n.
+- Se dio por hecho que el Error Trigger traía `execution.startedAt`. **No lo trae**: la línea «Cuándo» salía vacía. Se corrigió usando la hora en que se genera el aviso.
+- n8n añade `[line 1]` al mensaje de los errores del nodo Code (además de `error.lineNumber`). Se elimina al limpiar el texto para que el aviso quede legible.
+- El mensaje del error puede contener credenciales en claro (el del flujo de prueba llevaba `password=secreto123` y `api_key=ABC-987`); por eso la redacción se hace en el Code y **no** se envía la traza (`stack`).
+- Las pruebas se lanzaron con `curl` desde PowerShell: con JSON en línea el webhook respondía 404/422. Hubo que enviar el cuerpo desde un fichero (`--data-binary @fichero.json`).
 
-### Errores / alucinaciones
+## Decisiones
 
-| # | Error | Causa real | Corrección |
-|---|---|---|---|
-| 1 | Se leían **24.480 filas** en vez de 62 | `Execute Once` **desactivado** en `Read/Write File`: 31 repeticiones × 2.945 filas | Activar `Execute Once` |
-| 2 | **Cero peticiones POST salieron de n8n**, sin ningún error visible | La URL del POST estaba en **modo texto plano y en varias líneas**; n8n no la interpretaba como expresión | URL en modo **Expression (fx)** y en **una sola línea** |
-| 3 | Los fallos pasaban desapercibidos | `onError: continueRegularOutput` seguía la ejecución aunque el POST fallara | Quitar `onError` y dejar que el error se propague |
-| 4 | El informe contaba lo que iba a crear, no lo creado | El nodo Code leía el plan en vez de `$('Crear en la app')` | Leer los items reales del nodo de escritura |
-| 5 | «Access to the file is not allowed» | n8n 2.x limita el acceso a ficheros a `~/.n8n-files` por defecto | En `docker-compose.yml`: `./data:/home/node/data:ro` **y** `N8N_RESTRICT_FILE_ACCESS_TO=/home/node/data` |
-| 6 | Al diagnosticar, el proceso se quedaba sin memoria | `execution_data.data` es un **grafo de índices**: cadenas como `"5"` que apuntan a `blob[5]`; resolverlo a ciegas agota la memoria | Leer `database.sqlite` con `node:sqlite` y seguir los índices de forma selectiva |
+- El texto del aviso se genera en un único nodo Code: el nodo de correo solo envía `asunto` y `cuerpo`.
+- No se envía la traza completa ni parámetros de nodos: solo flujo, paso, mensaje, fecha y enlace.
+- HU-05 **no** se apunta a sí mismo como Error Workflow, para no crear avisos en cadena.
+- Destinatario único: `marisa@pasofirme.es`.
 
-### Otras decisiones
+## Pruebas
 
-- Sin endpoint de borrado en la API: los abonos duplicados se eliminaron directamente en SQLite, **con copia de seguridad previa** (`data/tienda-backup-antes-dedup.db`). Borrados los ids 96 y 98 (Carmen) y 97 (Ana).
-- **La base de datos de n8n nunca se tocó a mano**: n8n mantiene los flujos en memoria y sobrescribiría los cambios. Todo cambio de código se entrega al alumno para que lo pegue en la UI.
-
-### Resultados verificados
-
-| Comprobación | Resultado |
+| Caso | Resultado |
 |---|---|
-| Apartados creados | **7** (ids 25–31) con sus fechas originales |
-| Totales frente al Excel de Marisa | **Cuadran al céntimo**: 30 / 35 / 5 / 50 / 5 / 10 / 35 |
-| Estado final | 31 apartados, **95 abonos** |
-| Reejecución | **Idempotente**: crea 0 apartados y 0 abonos |
-| Correo final | `Apartados: 0 (planeados 0)`, `Abonos: 0`, `YA ESTABAN CARGADOS: 10`, `PARA QUE DECIDAS (2)` |
-
-### Para que decida Marisa (2 dudosos)
-
-- **Línea 4** — Lucía Gómez: abono inicial de **4 €**, por debajo del mínimo de 5 €. La API lo rechazaba con un 422.
-- **Línea 10** — Lucía Gómez: abono huérfano de **41 €** marcado «LIQUIDADO», sin apartado al que atribuir.
-
-### Efectos secundarios a tener en cuenta
-
-- Los apartados migrados **no tienen `email`** ⇒ los recordatorios de HU-06 **los omiten**.
-- El campo `notas` del Excel **se pierde**: la API no tiene campo equivalente.
-- `forma_pago` queda por defecto en `efectivo`.
-
-### Sobre «publicar» el flujo
-
-El botón **Publish** de n8n 2.x solo aplica a los triggers con algo que poner en producción (webhook → *production URL*; horarios → empiezan a correr). Un **Manual Trigger** no tiene nada que publicar: se ejecuta a mano con «Execute Workflow». Por eso la migración **no se publica, y no debe publicarse**.
-
----
-
-## Entrada — HU-04 · Cierre diario (flujo 5)
-
-- **Fecha:** 27/10/2026
-- **Tarea:** Pedir a la API las ventas y abonos del día, sumarlos por forma de pago y enviar el resumen a Marisa.
-- **Agente:** OpenCode
-- **Modelo:** MiMo-V2.6-Flash Free
-- **Contexto:** Especificación en `specs/5-cierre-diario.md`. El flujo (`workflows/02-05 Cierre diario.json`) tiene 5 nodos: `Schedule Trigger` 21:00 → `Ventas de hoy` → `Abonos de hoy` → `Code` → `Enviar cierre a Marisa`.
-
-### Prompts clave
-
-- Redacción de `specs/5-cierre-diario.md` contrastando el flujo ya montado con la API real de la tienda.
-
-### Decisiones
-
-- Los importes y las formas de pago los aporta la API; el nodo `Code` **solo agrega y formatea** (`30,00 €`), nunca recalcula.
-- El `Code` concentra el cálculo para que los nodos de correo solo elijan destinatario y asunto.
-
-### Errores / alucinaciones
-
-- No se registran errores de diseño en esta fase. Los problemas aparecieron **después**, en la revisión del repositorio (ver entrada final).
-
-### Hallazgos posteriores (29/10)
-
-- El nombre interno del flujo era **«02 Cierre diario»**, cuando por la numeración oficial del README debe ser el **flujo 5**.
-- Existían **dos exportaciones del mismo flujo**, ambas con `active: true`: importadas las dos, Marisa recibiría **dos cierres cada noche**.
-
----
-
-## Entrada — HU-03 · Abonos a distancia (flujo 3)
-
-- **Fecha:** 27/10/2026
-- **Tarea:** Registrar abonos hechos por Bizum o transferencia sin que Marisa tenga que apuntarlos a mano.
-- **Agente:** OpenCode
-- **Modelo:** MiMo-V2.6-Flash Free
-- **Contexto:** Especificación en `specs/3-abonos-a-distancia.md` y flujo en `workflows/HU-03 - Abonos por Bizum o Transferencia.json`.
-
-### Prompts clave
-
-- Elaboración de `specs/3-abonos-a-distancia.md` contrastando lo que pide el README («correo del banco + IA para extraer ordenante, importe y concepto») con lo que el equipo acabó implementando.
-
-### Decisiones
-
-- El equipo optó por un **Form Trigger** (formulario manual) en lugar de leer el correo del banco con IMAP.
-- La app sigue siendo la única fuente de verdad de los importes: el formulario aporta el dato, pero `abonado` y `pendiente` los calcula la API.
-
-### Errores / alucinaciones
-
-- **Bug abierto (verificado el 29/10):** la URL del alta de abono quedó como **texto literal**:
-  ```
-  http://tienda:8000/api/apartados/{{ $json.apartado_id }}/abonos
-  ```
-  Al estar en modo **Plain Text**, n8n nunca sustituyó la variable ⇒ **422 en todos los intentos**.
-- **Corrección pendiente:** pasar la URL a modo **Expression (fx)** y dejarla en **una sola línea**.
-
-### Pendiente de documentar
-
-- El README (flujo 3) pide leer los avisos del banco por correo. El formulario es **decisión del equipo**, no un error, pero hay que dejarla **escrita en la spec** con su justificación.
-
----
-
-## Entrada — HU-06 · Recordatorios y vencimientos (flujo 6)
-
-- **Fecha:** 27/10/2026
-- **Tarea:** Avisar a los clientes cuyo plazo vence y devolver a la venta los apartados vencidos.
-- **Agente:** OpenCode
-- **Modelo:** MiMo-V2.6-Flash Free
-- **Contexto:** Especificación en `specs/6-recordatorios-de-vencimiento.md`. El flujo `workflows/06-vencimiento.json` tiene 5 nodos: `Schedule Trigger` → `Recordatorios de hoy` (Code) → `Apartados activos` (GET) → `Aviso al cliente` → `Code`.
-
-### Prompts clave
-
-- Redacción de la especificación y verificación del aviso con el flujo `04-aviso-vencimiento-manana`.
-
-### Errores / alucinaciones
-
-- No se registran errores de diseño: el aviso se verificó funcionando.
-
-### Efecto de HU-10
-
-- Los **apartados migrados del Excel no tienen `email`**, así que **los recordatorios los omiten**. No es un fallo del flujo, pero hay que saberlo: son 7 apartados que Marisa debe avisar a mano si hace falta.
-
----
-
-## Entrada — HU-08 · Informe mensual (flujo 7)
-
-- **Fecha:** 27/10/2026
-- **Tarea:** Recaudación del mes, pendiente de cobro y apartados nuevos / liquidados / vencidos, enviados por correo a Marisa.
-- **Agente:** OpenCode
-- **Modelo:** MiMo-V2.6-Flash Free
-- **Contexto:** El flujo `workflows/08-informe-mensual.json` hace cuatro peticiones (`/api/ventas`, `/api/abonos`, `/api/apartados`, `/api/abonos`) contra `http://tienda:8000`.
-
-### Prompts clave
-
-- Encargo de elaborar la especificación y exportar el flujo del informe mensual. *(La redacción literal del prompt no quedó registrada; completar con el mensaje real usado por el equipo.)*
-
-### Errores / alucinaciones
-
-- **La especificación está vacía:** `specs/8-informe-mensual.md` tiene **0 bytes**. Se creó el 27/10 y nunca se rellenó.
-- **El flujo está mal numerado:** se llama «08-informe-mensual», pero el informe mensual es el **flujo 7** del README. El **8** es el Error Workflow. Importados tal cual, habría **dos flujos "08"**.
-
----
-
-## Entrada — Revisión del repositorio y limpieza previa a la entrega
-
-- **Fecha:** 28–29/10/2026
-- **Tarea:** Revisar el estado de `workflows/` y `specs/` a partir de una lista de problemas detectada por un compañero del equipo.
-- **Agente:** OpenCode
-- **Modelo:** MiMo-V2.6-Flash Free
-- **Contexto:** El compañero pasó una lista priorizada de incidencias. Se contrastó **cada punto** con la instancia real de n8n y con los ficheros del repositorio **antes de tocar nada**.
-
-### Qué se ACEPTÓ de la revisión
-
-| Punto del compañero | Confirmado |
-|---|---|
-| Cierre diario duplicado, ambos con `active: true` | ✅ Sí: importados los dos, Marisa recibiría dos cierres cada noche |
-| Llamada a `http://host.docker.internal:8000/` | ✅ Sí: desde dentro del contenedor de n8n no resuelve; el resto del proyecto usa `http://tienda:8000/` |
-| `marisa@lacuchara.example` | ✅ Sí: residuo de la guía de la pastelería de la que partió el proyecto |
-| `active: true` en los JSON exportados | ✅ Sí: con `--activeState=fromJson` se activarían sin haberlos probado |
-| `specs/8-informe-mensual.md` en blanco | ✅ Sí: 0 bytes |
-| Faltan HU-02 (recibo de abono) y la venta grande | ✅ Sí: no existen |
-
-### Qué se RECHAZÓ de la revisión
-
-| Afirmación del compañero | Realidad verificada |
-|---|---|
-| «`Lilo0zkcgABZtBGx` no existe ni en el repo ni en la instancia» | **Sí existe.** Se llama `session2-00-error` y está **activo**. El problema real es otro: `HU-05-avisar-de-errores.json` **nunca se importó**, así que conviven un flujo de errores vivo con nombre de prueba y otro en el repo que nadie cargó |
-| «`05 Cierre diario (1).json` es la versión buena; `02-05` es la vieja» | **Son el mismo flujo.** 5 nodos idénticos, mismo código de 2.159 caracteres, mismas URLs `http://tienda:8000`. Difieren en **10 bytes**, exactamente la longitud del nombre. El correcto es `02-05 Cierre diario.json`: es el que coincide con el flujo vivo de la instancia (`02/05 Cierre diario`) |
-| «`5-cierre-diario.md` es en realidad la HU-04» | **Es correcto y no hay que tocarlo.** El README asigna **flujo 5 = cierre diario = HU-04**. El error estaba en los JSON, que se llamaban «02» |
-
-### Hallazgos nuevos (no estaban en la revisión)
-
-- **Tres direcciones de correo distintas conviviendo:** `marisa@zapateria.example` (los flujos que ya funcionan en la instancia), `marisa@pasofirme.es` (HU-01 y HU-05) y `marisa@lacuchara.example` (el duplicado). Además el remitente es `zapateria@example.com` en los flujos vivos y `sistema@pasofirme.es` en HU-05.
-- **`08-informe-mensual.json` está mal numerado** (el informe es el flujo 7 y el 8 es el Error Workflow): crea **colisión** si se importa el HU-05 como flujo 8.
-- **El Error Workflow usa dos identificadores distintos** para lo mismo: `Lilo0zkcgABZtBGx` en los cierres e `hu05avisoserror` en HU-01.
-- **La numeración está revuelta:** unos ficheros usan número de flujo y otros número de HU.
-
-### Cambios aplicados
-
-- Borrado `05 Cierre diario (1).json` (el duplicado).
-- `http://host.docker.internal:8000/` → `http://tienda:8000/`.
-- `marisa@lacuchara.example` → `marisa@zapateria.example`.
-- `HU-01` con `errorWorkflow: hu05avisoserror`.
-
-### Pendientes tras la revisión
-
-- `active: true` → `false` en `02-05`, `06`, `08`, `HU-01` y `HU-05`.
-- Error Workflow en `06-vencimiento`, `08-informe-mensual`, `HU-03` y `HU-10`.
-- Renombrar `08-informe-mensual.json` → `07-informe-mensual.json`.
-- Unificar la dirección de correo (**decisión del equipo**, no es una corrección).
-- Rellenar `specs/8-informe-mensual.md`.
-- Documentar en la spec de HU-03 por qué se usó un formulario.
-- Importar `HU-05` y eliminar `session2-00-error`.
+| Flujo de prueba que falla con credenciales en el mensaje | Aviso con `password=*** y api_key=***`, sin `[line 1]` |
+| Error Trigger sin datos (`{}`) | Aviso con valores por defecto, sin fallar |
+| Mensaje de 500 caracteres | Recortado a 300 con `...` |
+| Fallo real de HU-01 (correo inválido) | Aviso con flujo, paso, mensaje y enlace a la ejecución |
+| Ejecución correcta de HU-01 | Sin aviso |
