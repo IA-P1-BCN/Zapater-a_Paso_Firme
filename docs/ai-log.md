@@ -142,6 +142,89 @@ Registro de las interacciones con el agente de IA: herramienta y modelos utiliza
 | Fallo real de HU-01 (correo inválido) | Aviso con flujo, paso, mensaje y enlace a la ejecución |
 | Ejecución correcta de HU-01 | Sin aviso |
 
+## Flujo 0 - Enrutador de la tienda
+
+- **Fecha:** 2026-10-29
+- **Herramienta:** OpenCode (Beam Free), con subagentes explore y general.
+- **Rama:** 0-enrutador-implementacion
+- **Spec:** specs/0-enrutador-de-la-tienda.md (mergeada en dev con #32 y corregida con #33)
+
+### Que se ha hecho
+
+- Flujo 00. Enrutador de la tienda creado: webhook POST /tienda con respuesta
+  inmediata, Code Leer evento (nunca falla) y Switch por evento, que llama a
+  HU-01 con Execute Workflow y deja los demas eventos en Ignorar evento.
+- HU-01 migrada a subflujo: webhook y Switch eliminados, Code Preparar mensaje
+  usa $json.body || , y se le quita settings.errorWorkflow.
+- settings.errorWorkflow = hu05avisoserror solo en el enrutador.
+- HU-05 sin cambios: en n8n 2.44.6 el Error Trigger ya recibe el mensaje real en
+  error.message (no en error.description).
+
+### Pruebas (instancia real)
+
+| Caso | Resultado |
+|---|---|
+| 1. partado.creado completo | 200 inmediato; HU-01 envia el correo al cliente |
+| 2. bono.registrado | 200; se ignora (sin ejecucion hija) |
+| 3. Cuerpo vacio {} | 200; se ignora |
+| 4. Evento desconocido | 200; se ignora |
+| 5. partado.creado con datos: {} | HU-01 envia el aviso de datos incompletos |
+| 6. Ruta unica /tienda | Una sola fila en webhook_entity |
+| 7. Fallo del subflujo (email invalido) | Un solo aviso de HU-05, con el mensaje real |
+| 8. Apartado creado desde la app (id 28) | Correo al cliente, igual que antes |
+
+### Problema encontrado y resuelto
+
+Al publicar el enrutador, la activacion fallaba con
+"SQLITE_CONSTRAINT: UNIQUE constraint failed" porque un outbox anterior de HU-01
+intentaba registrar el mismo webhook /tienda. Se reseteo el estado de
+publicacion del enrutador (workflow_publication_trigger_status,
+workflow_publication_outbox, workflow_publication_retry_state) y se publico
+de nuevo; a partir de ahi el webhook quedo registrado correctamente.
+
+- **Fecha:** 27/10/2026
+- **Tarea:** Formalizar el flujo de avisos de errores: especificación, limpieza del mensaje, pruebas, exportación y documentación.
+- **Rama:** `5-hu-05-avisos-de-errores`
+- **Agente:** OpenCode
+- **Modelo:** DeepSeek V4.1 Flash Free (proveedor opencode, capa gratuita)
+- **Contexto:** El flujo existía como soporte de HU-01, pero solo enviaba un correo con los datos en crudo del Error Trigger: sin limpiar, sin redactar credenciales y con la hora vacía. La HU-05 pide que el aviso lleve flujo, paso y error, y que nunca incluya contraseñas ni claves.
+
+## Prompts clave
+
+- «Bueno, tendría que realizar ahora el siguiente flujo: HU-05 · Avisos de errores (flujo 8) … desarrollando las especificaciones primero, para luego hacer el flujo y todo lo que se incluya».
+
+## Cambios realizados
+
+- **Spec nueva:** `specs/8-avisos-de-errores.md` (ontología, entradas del Error Trigger, reglas, criterios de aceptación y pruebas).
+- **Nodo Code `Preparar aviso`:** aplica valores por defecto si faltan datos, limpia saltos de línea y espacios, **redacta credenciales** (`password`, `api_key`, `apikey`, `token`, `secret`, `authorization`, `Bearer ...`), quita el sufijo `[line N]` que añade n8n y recorta el mensaje a 300 caracteres.
+- **Nodo `Avisar a la tienda`:** sigue enviando texto plano sin pie de n8n, con 2 intentos y 3 s de espera.
+- **Exportación:** `workflows/HU-05-avisar-de-errores.json` sustituido por la versión definitiva (3 nodos).
+- **Limpieza:** borrado de la instancia el flujo temporal `ZZ prueba error (borrar)` y sus 3 ejecuciones.
+
+## Errores / alucinaciones
+
+- Se dio por hecho que el Error Trigger traía `execution.startedAt`. **No lo trae**: la línea «Cuándo» salía vacía. Se corrigió usando la hora en que se genera el aviso.
+- n8n añade `[line 1]` al mensaje de los errores del nodo Code (además de `error.lineNumber`). Se elimina al limpiar el texto para que el aviso quede legible.
+- El mensaje del error puede contener credenciales en claro (el del flujo de prueba llevaba `password=secreto123` y `api_key=ABC-987`); por eso la redacción se hace en el Code y **no** se envía la traza (`stack`).
+- Las pruebas se lanzaron con `curl` desde PowerShell: con JSON en línea el webhook respondía 404/422. Hubo que enviar el cuerpo desde un fichero (`--data-binary @fichero.json`).
+
+## Decisiones
+
+- El texto del aviso se genera en un único nodo Code: el nodo de correo solo envía `asunto` y `cuerpo`.
+- No se envía la traza completa ni parámetros de nodos: solo flujo, paso, mensaje, fecha y enlace.
+- HU-05 **no** se apunta a sí mismo como Error Workflow, para no crear avisos en cadena.
+- Destinatario único: `marisa@pasofirme.es`.
+
+## Pruebas
+
+| Caso | Resultado |
+|---|---|
+| Flujo de prueba que falla con credenciales en el mensaje | Aviso con `password=*** y api_key=***`, sin `[line 1]` |
+| Error Trigger sin datos (`{}`) | Aviso con valores por defecto, sin fallar |
+| Mensaje de 500 caracteres | Recortado a 300 con `...` |
+| Fallo real de HU-01 (correo inválido) | Aviso con flujo, paso, mensaje y enlace a la ejecución |
+| Ejecución correcta de HU-01 | Sin aviso |
+
 ---
 
 ## Entrada — HU-07: Apartados vencidos con su vale
