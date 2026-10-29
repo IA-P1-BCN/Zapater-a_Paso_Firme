@@ -181,6 +181,41 @@ intentaba registrar el mismo webhook /tienda. Se reseteo el estado de
 publicacion del enrutador (workflow_publication_trigger_status,
 workflow_publication_outbox, workflow_publication_retry_state) y se publico
 de nuevo; a partir de ahi el webhook quedo registrado correctamente.
+## Flujo 4 - Aviso de ventas grandes (HU-09)
+
+- **Fecha:** 2026-10-29
+- **Herramienta:** OpenCode (Beam Free).
+- **Rama:** 9-aviso-de-ventas-grandes
+- **Spec:** specs/4-aviso-de-ventas-grandes.md
+
+### Que se ha hecho
+
+- Flujo HU-09. Aviso de ventas grandes creado como subflujo (Execute Workflow Trigger).
+- Nodo Code Leer venta y umbral lee el umbral de la variable de n8n
+  UMBRAL_VENTA_GRANDE (por defecto 150 EUR) y calcula si la venta es grande.
+- Nodo IF ¿Es venta grande? (>=) → Email a Marisa / NoOp Ignorar venta.
+- Correo a Marisa con concepto, importe, forma de pago, fecha e id.
+- Enrutador actualizado: rama enta.registrada → Ejecutar HU-09.
+- Variable UMBRAL_VENTA_GRANDE = 150 (tipo number) creada en n8n.
+
+### Pruebas (instancia real)
+
+| Caso | Resultado |
+|---|---|
+| 1. Venta grande (250 EUR) | 200 inmediato; HU-09 envia correo a Marisa |
+| 2. Venta pequena (40 EUR) | 200; HU-09 termina en Ignorar venta, sin correo |
+| 3. Importe justo en el umbral (150 EUR) | Correo a Marisa (>=) |
+| 4. Apartado creado (regresion) | Correo al cliente, igual que antes |
+| 5. Evento desconocido | 200; se ignora |
+
+### Problema encontrado y resuelto
+
+El enrutador no se actualizaba al reimportar porque import:workflow crea un
+workflow nuevo si el JSON no trae el id. Se anadio el id al JSON exportado
+(1YZEliGwwre5n7R5) para que la importacion actualice en lugar de duplicar.
+Ademas, la activacion del enrutador fallaba por un outbox anterior de HU-01
+que intentaba registrar el mismo /tienda; se reseteo el estado de publicacion
+y se publico de nuevo.
 
 - **Fecha:** 27/10/2026
 - **Tarea:** Formalizar el flujo de avisos de errores: especificación, limpieza del mensaje, pruebas, exportación y documentación.
@@ -514,3 +549,4 @@ El botón **Publish** de n8n 2.x solo aplica a los triggers con algo que poner e
 - Rellenar `specs/8-informe-mensual.md`.
 - Documentar en la spec de HU-03 por qué se usó un formulario.
 - Importar `HU-05` y eliminar `session2-00-error`.
+

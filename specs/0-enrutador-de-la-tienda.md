@@ -98,7 +98,7 @@ de forma que hay que tener en cuenta al migrar los flujos.
 |---|---|---|---|
 | `apartado.creado` | `POST /api/apartados` | HU-01 | Existe |
 | `abono.registrado` | `POST /api/apartados/{id}/abonos` | HU-02 (recibo de abono) | Pendiente |
-| `venta.registrada` | `POST /api/ventas` | Venta grande (flujo 4) | Pendiente |
+| `venta.registrada` | `POST /api/ventas` | HU-09. Aviso de ventas grandes | Implementado |
 | `apartado.vencido` | `POST /api/apartados/{id}/vencer` | Nadie | **Decidir** (ver §11) |
 
 Un evento **desconocido o vacío no es un error**: se ignora y la ejecución queda

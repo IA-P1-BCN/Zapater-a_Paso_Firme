@@ -60,6 +60,30 @@
                 },
                 "renameOutput": true,
                 "outputKey": "apartado.creado"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 4
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.evento }}",
+                      "rightValue": "venta.registrada",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "e2f3a4b5-6c7d-8e9f-0a1b-2c3d4e5f6a7b"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "venta.registrada"
               }
             ]
           },
@@ -107,6 +131,26 @@
         ],
         "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a07",
         "name": "Ignorar evento"
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "LgXdLHfmBaD2LkjE",
+            "mode": "list",
+            "cachedResultName": "HU-09. Aviso de ventas grandes"
+          },
+          "mode": "once",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.4,
+        "position": [
+          -460,
+          0
+        ],
+        "id": "e2f3a4b5-6c7d-8e9f-0a1b-2c3d4e5f6a7c",
+        "name": "Ejecutar HU-09"
       }
     ],
     "connections": {
@@ -143,6 +187,13 @@
           ],
           [
             {
+              "node": "Ejecutar HU-09",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
               "node": "Ignorar evento",
               "type": "main",
               "index": 0
@@ -159,6 +210,7 @@
     "meta": {
       "templateCredsSetupCompleted": true
     },
-    "triggerCount": 1
+    "triggerCount": 1,
+    "id": "1YZEliGwwre5n7R5"
   }
 ]
