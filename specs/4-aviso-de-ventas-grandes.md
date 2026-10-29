@@ -64,14 +64,16 @@ Cuando lo llama el enrutador → Leer venta y umbral → ¿Es venta grande?
 const body = $json.body || $json;
 const datos = body.datos || {};
 
-// Umbral configurable guardado en los datos del flujo (no en el codigo).
-// Asi cambiarlo no obliga a editar ni a republicar el flujo.
-const staticData = $getWorkflowStaticData('global');
+// Umbral configurable en una variable de n8n (Settings -> Variables),
+// clave UMBRAL_VENTA_GRANDE. Asi Marisa puede cambiarlo desde la UI sin
+// tocar el flujo. Si la variable no existe o no es valida, se usa el
+// valor por defecto.
 const UMBRAL_POR_DEFECTO = 150;
-if (typeof staticData.umbralVentaGrande !== 'number' || !Number.isFinite(staticData.umbralVentaGrande)) {
-  staticData.umbralVentaGrande = UMBRAL_POR_DEFECTO;
+let umbral = UMBRAL_POR_DEFECTO;
+if (typeof $vars !== 'undefined' && $vars.UMBRAL_VENTA_GRANDE !== undefined && $vars.UMBRAL_VENTA_GRANDE !== null) {
+  const v = Number($vars.UMBRAL_VENTA_GRANDE);
+  if (Number.isFinite(v)) umbral = v;
 }
-const umbral = staticData.umbralVentaGrande;
 
 const importe = Number(datos.importe);
 const esGrande = Number.isFinite(importe) && importe >= umbral;
@@ -113,21 +115,17 @@ return [{ json: { id, concepto, importe, formaPago, fecha, umbral, esGrande, imp
 
 ## 4. Cómo cambiar el umbral
 
-El umbral vive en los datos del flujo, no en el código. Para cambiarlo sin tocar
-el flujo, ejecuta una sola vez (manualmente o desde un nodo `Execute Workflow`
-auxiliar) este snippet en un nodo Code del flujo:
+El umbral vive en una **variable de n8n** (Settings → Variables), no en el código.
+La clave es `UMBRAL_VENTA_GRANDE` y el valor es un número (por defecto 150).
+Para cambiarlo, Marisa (o quien tenga acceso a n8n) edita esa variable desde la
+UI y guarda; el cambio aplica en la siguiente ejecución, sin tocar ni
+republicar el flujo.
 
-```js
-const staticData = $getWorkflowStaticData('global');
-staticData.umbralVentaGrande = 200; // nuevo umbral en euros
-return [{ json: { umbral: staticData.umbralVentaGrande } }];
-```
+Si la variable no existe o no es un número válido, el flujo usa 150 € por defecto.
 
-El cambio persiste entre ejecuciones. Si no se ha configurado nunca, el flujo usa
-150 € por defecto.
-
-> Nota: si en el futuro se quiere que Marisa lo cambie desde la app o desde un
-> correo, habría que añadir un endpoint/flujo dedicado. Fuera de alcance de esta HU.
+> Nota: las variables de n8n se resuelven con `$vars` en el motor v1 (el que
+> usa este proyecto, `executionOrder: v1`). Si en el futuro se migra al motor v2,
+> habrá que revisar este punto, porque v2 aún no soporta `$vars`.
 
 ## 5. Datos y seguridad
 
@@ -154,15 +152,15 @@ El cambio persiste entre ejecuciones. Si no se ha configurado nunca, el flujo us
 | 1. Venta grande | `POST` con `venta.registrada` e `importe: 250` (umbral 150) | `200`, ejecución del enrutador + HU-09, correo a Marisa |
 | 2. Venta pequeña | `POST` con `importe: 40` | `200`, HU-09 termina en `Ignorar venta`, sin correo |
 | 3. Importe justo en el umbral | `POST` con `importe: 150` | Correo a Marisa (>=) |
-| 4. Sin umbral inicial | Borrar static data y `POST` con `importe: 250` | Usa 150 € por defecto y envía correo |
-| 5. Cambiar umbral | Ejecutar el snippet con `200` y luego `POST` con `importe: 150` | No envía correo |
+| 4. Sin umbral inicial | Borrar la variable y `POST` con `importe: 250` | Usa 150 € por defecto y envía correo |
+| 5. Cambiar umbral | Editar la variable a `200` y luego `POST` con `importe: 150` | No envía correo |
 | 6. Ruta única | Consultar `webhook_entity` | Una sola fila con `webhookPath = tienda` (sin cambios) |
 | 7. Fallo del subflujo | `POST` con datos que provoquen error en el correo | **Un solo** aviso de HU-05 |
 | 8. Prueba real | Registrar una venta grande desde la app | Correo a Marisa, igual que antes |
 
 ## 8. Fuera de alcance
 
-- Editar el umbral desde la UI de la app (requeriría un endpoint nuevo).
+- Editar el umbral desde la app (requeriría un endpoint nuevo); desde n8n ya es posible (Settings → Variables).
 - Avisar al cliente (solo a Marisa).
 - Acumular o resumir varias ventas grandes en un solo correo.
 
@@ -177,6 +175,6 @@ El cambio persiste entre ejecuciones. Si no se ha configurado nunca, el flujo us
 
 ## 10. Decisiones pendientes
 
-- **Umbral por defecto:** ¿150 € es razonable, o prefieres otro valor?
-- **Umbral compartido:** ¿el umbral debe ser el mismo para todas las instancias o por tienda? (Hoy solo hay una tienda.)
-- **Forma de cambiarlo:** ¿vale con el snippet manual o se quiere un flujo/endpoint dedicado?
+- **Umbral por defecto:** 150 € (confirmado).
+- **Umbral compartido:** un solo umbral por instancia (= por tienda). Confirmado: hoy solo hay una tienda, no hay multi-tenant.
+- **Forma de cambiarlo:** variable de n8n (`UMBRAL_VENTA_GRANDE`, Settings → Variables), editable desde la UI sin tocar el flujo. Confirmado.
