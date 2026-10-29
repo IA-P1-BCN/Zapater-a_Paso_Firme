@@ -12,7 +12,7 @@ Como **cliente**, quiero que me avisen antes de que se acabe el plazo de mi apar
 
 El workflow avisa por correo a los clientes cuyo plazo vence en **7 días** y en **1 día**, con lo que les falta por pagar y la fecha límite.
 
-> **Alcance:** esta HU cubre solo los recordatorios. La otra mitad del flujo 6 —vencer por API los apartados pasados de plazo y generar el vale— es la **HU-07** y está pendiente.
+> **Alcance:** esta HU cubre solo los recordatorios. La otra mitad del flujo 6 —vencer por API los apartados pasados de plazo y generar el vale— es la **HU-07** y está en [`6b-vencidos.md`](6b-vencidos.md).
 
 ## 2. Disparador
 
