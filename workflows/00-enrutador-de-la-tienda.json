@@ -1,216 +1,214 @@
-[
-  {
-    "name": "00. Enrutador de la tienda",
-    "active": false,
-    "nodes": [
-      {
-        "parameters": {
-          "httpMethod": "POST",
-          "path": "tienda",
-          "responseMode": "onReceived",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.webhook",
-        "typeVersion": 2.2,
-        "position": [
-          -1200,
-          0
-        ],
-        "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a01",
-        "name": "Entrada de la tienda",
-        "webhookId": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a02"
+{
+  "name": "00. Enrutador de la tienda",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tienda",
+        "responseMode": "onReceived",
+        "options": {}
       },
-      {
-        "parameters": {
-          "jsCode": "// La app envia { evento, datos }. Aqui solo se normaliza: este nodo NUNCA falla,\n// para que un evento raro no dispare el aviso de errores de HU-05.\nconst entrada = $json && $json.body && typeof $json.body === 'object' ? $json.body : ($json || {});\n\nconst evento = typeof entrada.evento === 'string' ? entrada.evento.trim() : '';\nconst datos =\n  entrada.datos && typeof entrada.datos === 'object' && !Array.isArray(entrada.datos)\n    ? entrada.datos\n    : {};\n\nreturn [{ json: { evento, datos } }];"
-        },
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          -1000,
-          0
-        ],
-        "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a03",
-        "name": "Leer evento"
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        0
+      ],
+      "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a01",
+      "name": "Entrada de la tienda",
+      "webhookId": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a02"
+    },
+    {
+      "parameters": {
+        "jsCode": "// La app envia { evento, datos }. Aqui solo se normaliza: este nodo NUNCA falla,\n// para que un evento raro no dispare el aviso de errores de HU-05.\nconst entrada = $json && $json.body && typeof $json.body === 'object' ? $json.body : ($json || {});\n\nconst evento = typeof entrada.evento === 'string' ? entrada.evento.trim() : '';\nconst datos =\n  entrada.datos && typeof entrada.datos === 'object' && !Array.isArray(entrada.datos)\n    ? entrada.datos\n    : {};\n\nreturn [{ json: { evento, datos } }];"
       },
-      {
-        "parameters": {
-          "rules": {
-            "values": [
-              {
-                "conditions": {
-                  "options": {
-                    "caseSensitive": true,
-                    "leftValue": "",
-                    "typeValidation": "strict",
-                    "version": 4
-                  },
-                  "conditions": [
-                    {
-                      "leftValue": "={{ $json.evento }}",
-                      "rightValue": "apartado.creado",
-                      "operator": {
-                        "type": "string",
-                        "operation": "equals"
-                      },
-                      "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a04"
-                    }
-                  ],
-                  "combinator": "and"
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1000,
+        0
+      ],
+      "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a03",
+      "name": "Leer evento"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
                 },
-                "renameOutput": true,
-                "outputKey": "apartado.creado"
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.evento }}",
+                    "rightValue": "apartado.creado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a04"
+                  }
+                ],
+                "combinator": "and"
               },
-              {
-                "conditions": {
-                  "options": {
-                    "caseSensitive": true,
-                    "leftValue": "",
-                    "typeValidation": "strict",
-                    "version": 4
-                  },
-                  "conditions": [
-                    {
-                      "leftValue": "={{ $json.evento }}",
-                      "rightValue": "venta.registrada",
-                      "operator": {
-                        "type": "string",
-                        "operation": "equals"
-                      },
-                      "id": "e2f3a4b5-6c7d-8e9f-0a1b-2c3d4e5f6a7b"
-                    }
-                  ],
-                  "combinator": "and"
+              "renameOutput": true,
+              "outputKey": "apartado.creado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
                 },
-                "renameOutput": true,
-                "outputKey": "venta.registrada"
-              }
-            ]
-          },
-          "options": {
-            "fallbackOutput": "extra",
-            "renameFallbackOutput": "otro evento"
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.evento }}",
+                    "rightValue": "venta.registrada",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e2f3a4b5-6c7d-8e9f-0a1b-2c3d4e5f6a7b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "venta.registrada"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "otro evento"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        -760,
+        0
+      ],
+      "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a05",
+      "name": "¿Qué evento es?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "nboohoNYm6mVT0rU",
+          "mode": "list",
+          "cachedResultName": "HU-01. Confirmación al apartar"
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        -520,
+        -120
+      ],
+      "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a06",
+      "name": "Ejecutar HU-01"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        120
+      ],
+      "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a07",
+      "name": "Ignorar evento"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LgXdLHfmBaD2LkjE",
+          "mode": "list",
+          "cachedResultName": "HU-09. Aviso de ventas grandes"
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        -460,
+        0
+      ],
+      "id": "e2f3a4b5-6c7d-8e9f-0a1b-2c3d4e5f6a7c",
+      "name": "Ejecutar HU-09"
+    }
+  ],
+  "connections": {
+    "Entrada de la tienda": {
+      "main": [
+        [
+          {
+            "node": "Leer evento",
+            "type": "main",
+            "index": 0
           }
-        },
-        "type": "n8n-nodes-base.switch",
-        "typeVersion": 3.5,
-        "position": [
-          -760,
-          0
-        ],
-        "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a05",
-        "name": "¿Qué evento es?"
-      },
-      {
-        "parameters": {
-          "workflowId": {
-            "__rl": true,
-            "value": "nboohoNYm6mVT0rU",
-            "mode": "list",
-            "cachedResultName": "HU-01. Confirmación al apartar"
-          },
-          "mode": "once",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.executeWorkflow",
-        "typeVersion": 1.4,
-        "position": [
-          -520,
-          -120
-        ],
-        "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a06",
-        "name": "Ejecutar HU-01"
-      },
-      {
-        "parameters": {},
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
-        "position": [
-          -520,
-          120
-        ],
-        "id": "b1f0c2a4-1f3e-4a55-9f0a-7c1d2e3b4a07",
-        "name": "Ignorar evento"
-      },
-      {
-        "parameters": {
-          "workflowId": {
-            "__rl": true,
-            "value": "LgXdLHfmBaD2LkjE",
-            "mode": "list",
-            "cachedResultName": "HU-09. Aviso de ventas grandes"
-          },
-          "mode": "once",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.executeWorkflow",
-        "typeVersion": 1.4,
-        "position": [
-          -460,
-          0
-        ],
-        "id": "e2f3a4b5-6c7d-8e9f-0a1b-2c3d4e5f6a7c",
-        "name": "Ejecutar HU-09"
-      }
-    ],
-    "connections": {
-      "Entrada de la tienda": {
-        "main": [
-          [
-            {
-              "node": "Leer evento",
-              "type": "main",
-              "index": 0
-            }
-          ]
         ]
-      },
-      "Leer evento": {
-        "main": [
-          [
-            {
-              "node": "¿Qué evento es?",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Leer evento": {
+      "main": [
+        [
+          {
+            "node": "¿Qué evento es?",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "¿Qué evento es?": {
-        "main": [
-          [
-            {
-              "node": "Ejecutar HU-01",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Ejecutar HU-09",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Ignorar evento",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "¿Qué evento es?": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar HU-01",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar HU-09",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorar evento",
+            "type": "main",
+            "index": 0
+          }
         ]
-      }
-    },
-    "settings": {
-      "executionOrder": "v1",
-      "errorWorkflow": "hu05avisoserror"
-    },
-    "pinData": {},
-    "meta": {
-      "templateCredsSetupCompleted": true
-    },
-    "triggerCount": 1,
-    "id": "1YZEliGwwre5n7R5"
-  }
-]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "hu05avisoserror"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "triggerCount": 1,
+  "id": "1YZEliGwwre5n7R5"
+}

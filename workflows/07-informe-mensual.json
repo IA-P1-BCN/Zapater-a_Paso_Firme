@@ -1,374 +1,372 @@
-[
-  {
-    "updatedAt": "2026-10-29T14:10:19.000Z",
-    "createdAt": "2026-10-27T10:36:57.395Z",
-    "id": "qEg28CjgCQ8vnD39",
-    "name": "08-informe-mensual",
-    "description": null,
-    "active": false,
-    "isArchived": false,
-    "nodes": [
-      {
-        "parameters": {
-          "rule": {
-            "interval": [
-              {
-                "triggerAtHour": 8
-              }
-            ]
-          }
-        },
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1.4,
-        "position": [
-          0,
-          0
-        ],
-        "id": "6bd3d253-a8f9-4755-9bf0-fa22acc2b16b",
-        "name": "Primer día del mes"
+{
+  "updatedAt": "2026-10-29T14:10:19.000Z",
+  "createdAt": "2026-10-27T10:36:57.395Z",
+  "id": "qEg28CjgCQ8vnD39",
+  "name": "08-informe-mensual",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
       },
-      {
-        "parameters": {
-          "jsCode": "// El flujo corre el día 1: el informe es del mes anterior completo\nconst ini = $now.minus({ months: 1 }).startOf('month');\nconst fin = ini.endOf('month');\n\nreturn [{\n  json: {\n    desde: ini.toFormat('yyyy-MM-dd'),\n    hasta: fin.toFormat('yyyy-MM-dd'),\n    etiqueta: ini.setLocale('es').toFormat(\"LLLL 'de' yyyy\")\n  }\n}];;"
-        },
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          224,
-          0
-        ],
-        "id": "4e1e0a18-c508-49fa-94d3-d845596e2f92",
-        "name": "Mes anterior"
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6bd3d253-a8f9-4755-9bf0-fa22acc2b16b",
+      "name": "Primer día del mes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// El flujo corre el día 1: el informe es del mes anterior completo\nconst ini = $now.minus({ months: 1 }).startOf('month');\nconst fin = ini.endOf('month');\n\nreturn [{\n  json: {\n    desde: ini.toFormat('yyyy-MM-dd'),\n    hasta: fin.toFormat('yyyy-MM-dd'),\n    etiqueta: ini.setLocale('es').toFormat(\"LLLL 'de' yyyy\")\n  }\n}];;"
       },
-      {
-        "parameters": {
-          "url": "http://tienda:8000/api/ventas",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "sendQuery": true,
-          "queryParameters": {
-            "parameters": [
-              {
-                "name": "hasta",
-                "value": "={{ $('Mes anterior').first().json.hasta }}"
-              },
-              {
-                "name": "desde",
-                "value": "={{ $('Mes anterior').first().json.desde }}"
-              }
-            ]
-          },
-          "options": {}
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "4e1e0a18-c508-49fa-94d3-d845596e2f92",
+      "name": "Mes anterior"
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/ventas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "hasta",
+              "value": "={{ $('Mes anterior').first().json.hasta }}"
+            },
+            {
+              "name": "desde",
+              "value": "={{ $('Mes anterior').first().json.desde }}"
+            }
+          ]
         },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          448,
-          0
-        ],
-        "id": "17d2e3ba-d7ff-44eb-8b5b-0f61a29e368f",
-        "name": "Ventas del mes",
-        "alwaysOutputData": true,
-        "executeOnce": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000
+        "options": {}
       },
-      {
-        "parameters": {
-          "url": "http://tienda:8000/api/abonos",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "sendQuery": true,
-          "queryParameters": {
-            "parameters": [
-              {
-                "name": "desde",
-                "value": "={{ $('Mes anterior').first().json.desde }}"
-              },
-              {
-                "name": "hasta",
-                "value": "={{ $('Mes anterior').first().json.hasta }}"
-              }
-            ]
-          },
-          "options": {}
-        },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          672,
-          0
-        ],
-        "id": "ac12c6c9-e772-4c90-bbef-ba9ea991bcad",
-        "name": "Abonos del mes",
-        "alwaysOutputData": true,
-        "executeOnce": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "17d2e3ba-d7ff-44eb-8b5b-0f61a29e368f",
+      "name": "Ventas del mes",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
       },
-      {
-        "parameters": {
-          "url": "http://tienda:8000/api/apartados",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "options": {}
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/abonos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "desde",
+              "value": "={{ $('Mes anterior').first().json.desde }}"
+            },
+            {
+              "name": "hasta",
+              "value": "={{ $('Mes anterior').first().json.hasta }}"
+            }
+          ]
         },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          896,
-          0
-        ],
-        "id": "0d5890e6-286a-416d-91bf-2c1dbc15e2ee",
-        "name": "Apartados",
-        "alwaysOutputData": true,
-        "executeOnce": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000
+        "options": {}
       },
-      {
-        "parameters": {
-          "url": "http://tienda:8000/api/abonos",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          1120,
-          0
-        ],
-        "id": "df814c4d-b7c3-4613-833a-93c3065fbe00",
-        "name": "Todos los abonos",
-        "alwaysOutputData": true,
-        "executeOnce": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "ac12c6c9-e772-4c90-bbef-ba9ea991bcad",
+      "name": "Abonos del mes",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
       },
-      {
-        "parameters": {
-          "url": "http://tienda:8000/api/vales",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          1344,
-          0
-        ],
-        "id": "42f68825-132d-4720-9893-abc3dc3b5c35",
-        "name": "Vales",
-        "alwaysOutputData": true,
-        "executeOnce": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/apartados",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
       },
-      {
-        "parameters": {
-          "jsCode": "const { desde, hasta, etiqueta } = $('Mes anterior').first().json;\n\n// Lee un nodo ignorando la fila vacía que deja \"Always Output Data\"\nconst leer = (nodo, campo) => $(nodo).all().map(i => i.json).filter(x => x[campo] !== undefined);\n\nconst ventas = leer('Ventas del mes', 'importe');\nconst abonos = leer('Abonos del mes', 'importe');\nconst apartados = leer('Apartados', 'estado');\nconst todosAbonos = leer('Todos los abonos', 'apartado_id');\nconst vales = leer('Vales', 'apartado_id');\n\nif (apartados.length === 0) {\n  throw new Error('No llegaron apartados: no se envía un informe incompleto');\n}\n\nconst delMes = f => f >= desde && f <= hasta;\nconst centimos = v => Math.round(Number(v) * 100);\nconst sumar = (lista, campo) => lista.reduce((s, x) => s + centimos(x[campo]), 0) / 100;\n\nconst totalVentas = sumar(ventas, 'importe');\nconst totalAbonos = sumar(abonos, 'importe');\nconst pendiente = sumar(apartados.filter(a => a.estado === 'activo'), 'pendiente');\n\nconst nuevos = apartados.filter(a => delMes(a.fecha)).length;\n\n// Un apartado se liquida con su último abono\nconst ultimoAbono = {};\nfor (const ab of todosAbonos) {\n  if (!ultimoAbono[ab.apartado_id] || ab.fecha > ultimoAbono[ab.apartado_id]) {\n    ultimoAbono[ab.apartado_id] = ab.fecha;\n  }\n}\nconst liquidados = apartados.filter(a =>\n  a.estado === 'liquidado' && ultimoAbono[a.id] && delMes(ultimoAbono[a.id])\n).length;\n\n// Un apartado vence el día en que se genera su vale\nconst vencidos = vales.filter(v => delMes(v.fecha)).length;\n\nconst eur = v => Number(v).toFixed(2) + ' EUR';\n\nconst asunto = 'Informe de ' + etiqueta + ': lo recaudado y lo que te deben';\n\nconst texto = 'Hola Marisa,\\n\\n'\n  + 'Este es el resumen de ' + etiqueta + ':\\n\\n'\n  + 'RECAUDADO\\n'\n  + 'Ventas directas: ' + eur(totalVentas) + '\\n'\n  + 'Abonos de apartados: ' + eur(totalAbonos) + '\\n'\n  + 'Total recaudado: ' + eur(totalVentas + totalAbonos) + '\\n\\n'\n  + 'PENDIENTE DE COBRO\\n'\n  + 'Total que te deben: ' + eur(pendiente) + '\\n\\n'\n  + 'APARTADOS DEL MES\\n'\n  + 'Nuevos: ' + nuevos + '\\n'\n  + 'Liquidados: ' + liquidados + '\\n'\n  + 'Vencidos: ' + vencidos + '\\n\\n'\n  + 'Zapatería Paso Firme';\n\nreturn [{ json: { asunto: asunto, texto: texto } }];"
-        },
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          1568,
-          0
-        ],
-        "id": "a2be992f-7908-4050-ac9e-a653395779fe",
-        "name": "Montar informe"
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        896,
+        0
+      ],
+      "id": "0d5890e6-286a-416d-91bf-2c1dbc15e2ee",
+      "name": "Apartados",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
       },
-      {
-        "parameters": {
-          "fromEmail": "zapateria@example.com",
-          "toEmail": "marisa@zapateria.example",
-          "subject": "={{ $json.asunto }}",
-          "emailFormat": "text",
-          "text": "={{ $json.texto }}",
-          "options": {
-            "appendAttribution": false
-          }
-        },
-        "type": "n8n-nodes-base.emailSend",
-        "typeVersion": 2.1,
-        "position": [
-          1792,
-          0
-        ],
-        "id": "17b79ad2-3427-4eea-823b-a006fd89c8da",
-        "name": "Informe a Marisa",
-        "webhookId": "53f5c7b4-5743-407d-a1ab-a3945559fb4d",
-        "credentials": {
-          "smtp": {
-            "id": "eHXPDCqGJYZp1rLm",
-            "name": "API Zapateria"
-          }
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/abonos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "df814c4d-b7c3-4613-833a-93c3065fbe00",
+      "name": "Todos los abonos",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/vales",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "42f68825-132d-4720-9893-abc3dc3b5c35",
+      "name": "Vales",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "const { desde, hasta, etiqueta } = $('Mes anterior').first().json;\n\n// Lee un nodo ignorando la fila vacía que deja \"Always Output Data\"\nconst leer = (nodo, campo) => $(nodo).all().map(i => i.json).filter(x => x[campo] !== undefined);\n\nconst ventas = leer('Ventas del mes', 'importe');\nconst abonos = leer('Abonos del mes', 'importe');\nconst apartados = leer('Apartados', 'estado');\nconst todosAbonos = leer('Todos los abonos', 'apartado_id');\nconst vales = leer('Vales', 'apartado_id');\n\nif (apartados.length === 0) {\n  throw new Error('No llegaron apartados: no se envía un informe incompleto');\n}\n\nconst delMes = f => f >= desde && f <= hasta;\nconst centimos = v => Math.round(Number(v) * 100);\nconst sumar = (lista, campo) => lista.reduce((s, x) => s + centimos(x[campo]), 0) / 100;\n\nconst totalVentas = sumar(ventas, 'importe');\nconst totalAbonos = sumar(abonos, 'importe');\nconst pendiente = sumar(apartados.filter(a => a.estado === 'activo'), 'pendiente');\n\nconst nuevos = apartados.filter(a => delMes(a.fecha)).length;\n\n// Un apartado se liquida con su último abono\nconst ultimoAbono = {};\nfor (const ab of todosAbonos) {\n  if (!ultimoAbono[ab.apartado_id] || ab.fecha > ultimoAbono[ab.apartado_id]) {\n    ultimoAbono[ab.apartado_id] = ab.fecha;\n  }\n}\nconst liquidados = apartados.filter(a =>\n  a.estado === 'liquidado' && ultimoAbono[a.id] && delMes(ultimoAbono[a.id])\n).length;\n\n// Un apartado vence el día en que se genera su vale\nconst vencidos = vales.filter(v => delMes(v.fecha)).length;\n\nconst eur = v => Number(v).toFixed(2) + ' EUR';\n\nconst asunto = 'Informe de ' + etiqueta + ': lo recaudado y lo que te deben';\n\nconst texto = 'Hola Marisa,\\n\\n'\n  + 'Este es el resumen de ' + etiqueta + ':\\n\\n'\n  + 'RECAUDADO\\n'\n  + 'Ventas directas: ' + eur(totalVentas) + '\\n'\n  + 'Abonos de apartados: ' + eur(totalAbonos) + '\\n'\n  + 'Total recaudado: ' + eur(totalVentas + totalAbonos) + '\\n\\n'\n  + 'PENDIENTE DE COBRO\\n'\n  + 'Total que te deben: ' + eur(pendiente) + '\\n\\n'\n  + 'APARTADOS DEL MES\\n'\n  + 'Nuevos: ' + nuevos + '\\n'\n  + 'Liquidados: ' + liquidados + '\\n'\n  + 'Vencidos: ' + vencidos + '\\n\\n'\n  + 'Zapatería Paso Firme';\n\nreturn [{ json: { asunto: asunto, texto: texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ],
+      "id": "a2be992f-7908-4050-ac9e-a653395779fe",
+      "name": "Montar informe"
+    },
+    {
+      "parameters": {
+        "fromEmail": "zapateria@example.com",
+        "toEmail": "marisa@zapateria.example",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "text",
+        "text": "={{ $json.texto }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1792,
+        0
+      ],
+      "id": "17b79ad2-3427-4eea-823b-a006fd89c8da",
+      "name": "Informe a Marisa",
+      "webhookId": "53f5c7b4-5743-407d-a1ab-a3945559fb4d",
+      "credentials": {
+        "smtp": {
+          "id": "eHXPDCqGJYZp1rLm",
+          "name": "API Zapateria"
         }
       }
-    ],
-    "connections": {
-      "Primer día del mes": {
-        "main": [
-          [
-            {
-              "node": "Mes anterior",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Mes anterior": {
-        "main": [
-          [
-            {
-              "node": "Ventas del mes",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Ventas del mes": {
-        "main": [
-          [
-            {
-              "node": "Abonos del mes",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Abonos del mes": {
-        "main": [
-          [
-            {
-              "node": "Apartados",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Apartados": {
-        "main": [
-          [
-            {
-              "node": "Todos los abonos",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Todos los abonos": {
-        "main": [
-          [
-            {
-              "node": "Vales",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Vales": {
-        "main": [
-          [
-            {
-              "node": "Montar informe",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Montar informe": {
-        "main": [
-          [
-            {
-              "node": "Informe a Marisa",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      }
-    },
-    "settings": {
-      "executionOrder": "v1",
-      "binaryMode": "separate",
-      "errorWorkflow": "hu05avisoserror"
-    },
-    "staticData": {
-      "node:Schedule Trigger": {
-        "recurrenceRules": [
-          null
-        ],
-        "recurrenceRuleSignatures": [
-          null
-        ]
-      },
-      "node:Primer día del mes": {
-        "recurrenceRules": [
-          null
-        ],
-        "recurrenceRuleSignatures": [
-          null
-        ]
-      }
-    },
-    "meta": {
-      "templateCredsSetupCompleted": true
-    },
-    "nodeGroups": [],
-    "pinData": {},
-    "versionId": "e407ee02-a175-4957-a5ed-6bb222851b5d",
-    "activeVersionId": "e407ee02-a175-4957-a5ed-6bb222851b5d",
-    "versionCounter": 69,
-    "triggerCount": 1,
-    "sourceWorkflowId": null,
-    "tags": [],
-    "versionMetadata": {
-      "name": "Version ec52a7fd",
-      "description": ""
     }
+  ],
+  "connections": {
+    "Primer día del mes": {
+      "main": [
+        [
+          {
+            "node": "Mes anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mes anterior": {
+      "main": [
+        [
+          {
+            "node": "Ventas del mes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ventas del mes": {
+      "main": [
+        [
+          {
+            "node": "Abonos del mes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abonos del mes": {
+      "main": [
+        [
+          {
+            "node": "Apartados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apartados": {
+      "main": [
+        [
+          {
+            "node": "Todos los abonos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Todos los abonos": {
+      "main": [
+        [
+          {
+            "node": "Vales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vales": {
+      "main": [
+        [
+          {
+            "node": "Montar informe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar informe": {
+      "main": [
+        [
+          {
+            "node": "Informe a Marisa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "hu05avisoserror"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:Primer día del mes": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "e407ee02-a175-4957-a5ed-6bb222851b5d",
+  "activeVersionId": "e407ee02-a175-4957-a5ed-6bb222851b5d",
+  "versionCounter": 69,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": "Version ec52a7fd",
+    "description": ""
   }
-]
+}

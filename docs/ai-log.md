@@ -592,6 +592,7 @@ El botón **Publish** de n8n 2.x solo aplica a los triggers con algo que poner e
 ### Errores del agente
 
 - `import:workflow` **sobrescribe** si el JSON conserva el `id`: una copia de prueba del cierre sustituyó al original. Se restauró desde el JSON exportado y se repitió la prueba con una copia **sin** `id`.
+- `n8n export:workflow` del CLI escribe **un array** (`[{...}]`), pero el importador de la interfaz espera **un objeto** y falla con «The imported data does not contain valid workflow data ('nodes' and 'connections' are missing)». Los JSON de `workflows/` se han reescrito como objeto suelto, UTF-8 sin BOM.
 - Archivar en SQL **no despublica**: el webhook de la copia seguía respondiendo hasta ejecutar `unpublish:workflow`.
 - La primera auditoría de expresiones daba falsos positivos: marcaba como rotas las que sí tenían el prefijo `=` correcto.
 

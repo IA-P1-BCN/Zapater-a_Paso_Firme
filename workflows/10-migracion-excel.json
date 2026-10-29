@@ -1,345 +1,343 @@
-[
-  {
-    "updatedAt": "2026-10-28T13:43:24.946Z",
-    "createdAt": "2026-10-28T10:10:31.534Z",
-    "id": "jXRlDdCzwk47ypv3",
-    "name": "HU-10",
-    "description": null,
-    "active": false,
-    "isArchived": false,
-    "nodes": [
-      {
-        "parameters": {},
-        "type": "n8n-nodes-base.manualTrigger",
-        "typeVersion": 1,
-        "position": [
-          -304,
-          -16
-        ],
-        "id": "582818b2-70f6-4766-819b-692a7837986a",
-        "name": "Ejecutar migración"
+{
+  "updatedAt": "2026-10-28T13:43:24.946Z",
+  "createdAt": "2026-10-28T10:10:31.534Z",
+  "id": "jXRlDdCzwk47ypv3",
+  "name": "HU-10",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        -16
+      ],
+      "id": "582818b2-70f6-4766-819b-692a7837986a",
+      "name": "Ejecutar migración"
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/apartados",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
       },
-      {
-        "parameters": {
-          "url": "http://tienda:8000/api/apartados",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          -144,
-          -16
-        ],
-        "id": "38c0c717-cb41-44d2-aee5-3991f8dcae3f",
-        "name": "Apartados en la app",
-        "alwaysOutputData": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -144,
+        -16
+      ],
+      "id": "38c0c717-cb41-44d2-aee5-3991f8dcae3f",
+      "name": "Apartados en la app",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
       },
-      {
-        "parameters": {
-          "url": "http://tienda:8000/api/abonos?desde=2026-01-01&hasta=2026-12-31",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          32,
-          -16
-        ],
-        "id": "cdfec533-1128-44aa-8080-5dd3bc688ea0",
-        "name": "Abonos en la app",
-        "alwaysOutputData": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "http://tienda:8000/api/abonos?desde=2026-01-01&hasta=2026-12-31",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
       },
-      {
-        "parameters": {
-          "fileSelector": "/home/node/data/excel_actual_apartados.csv",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.readWriteFile",
-        "typeVersion": 1.1,
-        "position": [
-          208,
-          -16
-        ],
-        "id": "ad377d82-8232-4f47-b389-6fd61d0d7753",
-        "name": "Read/Write Files from Disk",
-        "executeOnce": true
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        32,
+        -16
+      ],
+      "id": "cdfec533-1128-44aa-8080-5dd3bc688ea0",
+      "name": "Abonos en la app",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
       },
-      {
-        "parameters": {
-          "options": {}
-        },
-        "type": "n8n-nodes-base.extractFromFile",
-        "typeVersion": 1.2,
-        "position": [
-          384,
-          -16
-        ],
-        "id": "b1e5d84b-e131-4401-a52e-ad301779e8fb",
-        "name": "Extract from File"
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/data/excel_actual_apartados.csv",
+        "options": {}
       },
-      {
-        "parameters": {
-          "jsCode": "// ---------- utilidades de limpieza ----------\nfunction aFecha(txt) {\n  if (!txt) return null;\n  const t = String(txt).trim();\n  let m = t.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);   // 02/09/2026\n  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');\n  m = t.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2})$/);       // 7/9/26\n  if (m) return '20' + m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');\n  return null;\n}\n\nfunction aNumero(txt) {\n  if (txt === null || txt === undefined) return null;\n  let t = String(txt).trim().replace(/[€\\s]/g, '');     // quita € y espacios\n  if (t === '') return null;\n  if (t.indexOf(',') >= 0 && t.indexOf('.') >= 0) t = t.replace(/\\./g, '').replace(',', '.'); // 1.842,30\n  else if (t.indexOf(',') >= 0) t = t.replace(',', '.');                                        // 4,5\n  const n = Number(t);\n  return isNaN(n) ? null : n;\n}\n\nfunction clave(txt) {\n  return String(txt || '').trim().replace(/\\s+/g, ' ').toLowerCase();\n}\n\n// ---------- lo que ya hay en la app ----------\nconst existentes = $('Apartados en la app').all().map(i => i.json).filter(x => x && x.id);\nconst abonosYa   = $('Abonos en la app').all().map(i => i.json).filter(x => x && x.id);\n\n// ---------- filas del CSV ----------\nconst filas = $input.all().map(i => i.json);\nconst salida = [];\nconst yaVisto = {};\n\nfor (let n = 0; n < filas.length; n++) {\n  const f = filas[n];\n  const linea = n + 2;   // la línea 1 es la cabecera\n\n  if (!f.fecha && !f.cliente) continue;   // fila vacía\n\n  const fecha  = aFecha(f.fecha);\n  const precio = aNumero(f.precio);\n  const abono  = aNumero(f.abono);\n  const notas  = String(f.notas || '');\n  const par    = clave(f.cliente) + '|' + clave(f.modelo);\n\n  if (!f.cliente || !f.modelo) {\n    salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Falta el cliente o el modelo' } });\n    continue;\n  }\n  if (!fecha) {\n    salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Fecha ilegible: \"' + f.fecha + '\"' } });\n    continue;\n  }\n  if (precio === null || abono === null) {\n    salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Importe ilegible (precio \"' + f.precio + '\", abono \"' + f.abono + '\")' } });\n    continue;\n  }\n\n  const esAbono = yaVisto[par] === true || /abono|liquidado/i.test(notas);\n\n  if (!esAbono) {\n    // ---- NUEVO APARTADO ----\n    yaVisto[par] = true;\n    if (abono < 5) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Abono inicial de ' + abono.toFixed(2) + ' EUR: por debajo del mínimo de 5 EUR (la app lo rechazaría con 422)' } });\n      continue;\n    }\n    if (abono > precio) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'El abono inicial (' + abono.toFixed(2) + ') supera el precio (' + precio.toFixed(2) + ')' } });\n      continue;\n    }\n    const dup = existentes.find(e =>\n      clave(e.cliente) === clave(f.cliente) &&\n      clave(e.producto) === clave(f.modelo) &&\n      e.fecha === fecha\n    );\n    if (dup) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Ya estaba cargado en la app (apartado #' + dup.id + '): no se duplica' } });\n      continue;\n    }\n    salida.push({ json: {\n      tipo: 'apartado', linea: linea,\n      payload: {\n        cliente: f.cliente,\n        telefono: String(f.telefono || '').trim(),\n        producto: f.modelo,\n        talla: String(f.talla || '').trim(),\n        precio: precio,\n        abono_inicial: abono,\n        fecha: fecha\n      }\n    }});\n  } else {\n    // ---- ABONO A UN APARTADO ----\n    const padre = existentes.find(e =>\n      clave(e.cliente) === clave(f.cliente) &&\n      clave(e.producto) === clave(f.modelo)\n    );\n    if (!padre) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Aún no existe el apartado al que pertenece este abono: se cargará en la próxima ejecución' } });\n      continue;\n    }\n\n    // ====== ARREGLO: ¿ya estaba cargado? ======\n    // Señal 1 (la más fiable): el total que Marisa anotó en el Excel es \"precio - resta\".\n    // Si la app ya acumula ese importe, este abono ya está aplicado.\n    const resta = aNumero(f.resta);\n    const totalEsperado = (resta === null) ? null : precio - resta;\n    const yaAcumulado = (totalEsperado !== null) && (Number(padre.abonado || 0) >= totalEsperado - 0.001);\n\n    // Señal 2: existe un abono igual (mismo día, mismo importe)\n    const repetido = yaAcumulado || abonosYa.some(a =>\n      Number(a.apartado_id) === Number(padre.id) &&\n      a.fecha === fecha &&\n      Number(a.importe) === abono\n    );\n    // ====== fin del arreglo ======\n\n    if (repetido) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Ese abono ya estaba en el apartado #' + padre.id + ': no se duplica' } });\n      continue;\n    }\n    salida.push({ json: {\n      tipo: 'abono', linea: linea, apartado_id: padre.id,\n      payload: { importe: abono, fecha: fecha }\n    }});\n  }\n}\n// Los dudosos no viajan como items: se guardan como campo para no bifurcar el flujo.\n// Así el informe siempre se envía, aunque no haya nada que crear.\nconst listaDudosos = salida\n  .filter(s => s.json.tipo === 'dudoso')\n  .map(s => ({ linea: s.json.linea, motivo: s.json.motivo }));\n\nconst aCrear = salida.filter(s => s.json.tipo !== 'dudoso');\n\n// Si no hay nada que crear, mandamos UN item para que el informe salga igualmente\nconst finales = aCrear.length ? aCrear : [{ json: { tipo: 'nada', payload: null } }];\n\nfor (const f of finales) f.json.dudosos = listaDudosos;\n\nreturn finales;"
-        },
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          544,
-          -16
-        ],
-        "id": "941afb89-fc28-483b-b1ad-840aee403d6d",
-        "name": "Limpiar y clasificar"
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "ad377d82-8232-4f47-b389-6fd61d0d7753",
+      "name": "Read/Write Files from Disk",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {}
       },
-      {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "strict",
-              "version": 4
-            },
-            "conditions": [
-              {
-                "id": "8e6db786-191a-48bc-b239-f81fb1b124ac",
-                "leftValue": "={{ $json.tipo }}",
-                "rightValue": "nada",
-                "operator": {
-                  "type": "string",
-                  "operation": "equals",
-                  "name": "filter.operator.equals"
-                }
-              }
-            ],
-            "combinator": "and"
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        -16
+      ],
+      "id": "b1e5d84b-e131-4401-a52e-ad301779e8fb",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---------- utilidades de limpieza ----------\nfunction aFecha(txt) {\n  if (!txt) return null;\n  const t = String(txt).trim();\n  let m = t.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);   // 02/09/2026\n  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');\n  m = t.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2})$/);       // 7/9/26\n  if (m) return '20' + m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');\n  return null;\n}\n\nfunction aNumero(txt) {\n  if (txt === null || txt === undefined) return null;\n  let t = String(txt).trim().replace(/[€\\s]/g, '');     // quita € y espacios\n  if (t === '') return null;\n  if (t.indexOf(',') >= 0 && t.indexOf('.') >= 0) t = t.replace(/\\./g, '').replace(',', '.'); // 1.842,30\n  else if (t.indexOf(',') >= 0) t = t.replace(',', '.');                                        // 4,5\n  const n = Number(t);\n  return isNaN(n) ? null : n;\n}\n\nfunction clave(txt) {\n  return String(txt || '').trim().replace(/\\s+/g, ' ').toLowerCase();\n}\n\n// ---------- lo que ya hay en la app ----------\nconst existentes = $('Apartados en la app').all().map(i => i.json).filter(x => x && x.id);\nconst abonosYa   = $('Abonos en la app').all().map(i => i.json).filter(x => x && x.id);\n\n// ---------- filas del CSV ----------\nconst filas = $input.all().map(i => i.json);\nconst salida = [];\nconst yaVisto = {};\n\nfor (let n = 0; n < filas.length; n++) {\n  const f = filas[n];\n  const linea = n + 2;   // la línea 1 es la cabecera\n\n  if (!f.fecha && !f.cliente) continue;   // fila vacía\n\n  const fecha  = aFecha(f.fecha);\n  const precio = aNumero(f.precio);\n  const abono  = aNumero(f.abono);\n  const notas  = String(f.notas || '');\n  const par    = clave(f.cliente) + '|' + clave(f.modelo);\n\n  if (!f.cliente || !f.modelo) {\n    salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Falta el cliente o el modelo' } });\n    continue;\n  }\n  if (!fecha) {\n    salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Fecha ilegible: \"' + f.fecha + '\"' } });\n    continue;\n  }\n  if (precio === null || abono === null) {\n    salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Importe ilegible (precio \"' + f.precio + '\", abono \"' + f.abono + '\")' } });\n    continue;\n  }\n\n  const esAbono = yaVisto[par] === true || /abono|liquidado/i.test(notas);\n\n  if (!esAbono) {\n    // ---- NUEVO APARTADO ----\n    yaVisto[par] = true;\n    if (abono < 5) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Abono inicial de ' + abono.toFixed(2) + ' EUR: por debajo del mínimo de 5 EUR (la app lo rechazaría con 422)' } });\n      continue;\n    }\n    if (abono > precio) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'El abono inicial (' + abono.toFixed(2) + ') supera el precio (' + precio.toFixed(2) + ')' } });\n      continue;\n    }\n    const dup = existentes.find(e =>\n      clave(e.cliente) === clave(f.cliente) &&\n      clave(e.producto) === clave(f.modelo) &&\n      e.fecha === fecha\n    );\n    if (dup) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Ya estaba cargado en la app (apartado #' + dup.id + '): no se duplica' } });\n      continue;\n    }\n    salida.push({ json: {\n      tipo: 'apartado', linea: linea,\n      payload: {\n        cliente: f.cliente,\n        telefono: String(f.telefono || '').trim(),\n        producto: f.modelo,\n        talla: String(f.talla || '').trim(),\n        precio: precio,\n        abono_inicial: abono,\n        fecha: fecha\n      }\n    }});\n  } else {\n    // ---- ABONO A UN APARTADO ----\n    const padre = existentes.find(e =>\n      clave(e.cliente) === clave(f.cliente) &&\n      clave(e.producto) === clave(f.modelo)\n    );\n    if (!padre) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Aún no existe el apartado al que pertenece este abono: se cargará en la próxima ejecución' } });\n      continue;\n    }\n\n    // ====== ARREGLO: ¿ya estaba cargado? ======\n    // Señal 1 (la más fiable): el total que Marisa anotó en el Excel es \"precio - resta\".\n    // Si la app ya acumula ese importe, este abono ya está aplicado.\n    const resta = aNumero(f.resta);\n    const totalEsperado = (resta === null) ? null : precio - resta;\n    const yaAcumulado = (totalEsperado !== null) && (Number(padre.abonado || 0) >= totalEsperado - 0.001);\n\n    // Señal 2: existe un abono igual (mismo día, mismo importe)\n    const repetido = yaAcumulado || abonosYa.some(a =>\n      Number(a.apartado_id) === Number(padre.id) &&\n      a.fecha === fecha &&\n      Number(a.importe) === abono\n    );\n    // ====== fin del arreglo ======\n\n    if (repetido) {\n      salida.push({ json: { tipo: 'dudoso', linea: linea, motivo: 'Ese abono ya estaba en el apartado #' + padre.id + ': no se duplica' } });\n      continue;\n    }\n    salida.push({ json: {\n      tipo: 'abono', linea: linea, apartado_id: padre.id,\n      payload: { importe: abono, fecha: fecha }\n    }});\n  }\n}\n// Los dudosos no viajan como items: se guardan como campo para no bifurcar el flujo.\n// Así el informe siempre se envía, aunque no haya nada que crear.\nconst listaDudosos = salida\n  .filter(s => s.json.tipo === 'dudoso')\n  .map(s => ({ linea: s.json.linea, motivo: s.json.motivo }));\n\nconst aCrear = salida.filter(s => s.json.tipo !== 'dudoso');\n\n// Si no hay nada que crear, mandamos UN item para que el informe salga igualmente\nconst finales = aCrear.length ? aCrear : [{ json: { tipo: 'nada', payload: null } }];\n\nfor (const f of finales) f.json.dudosos = listaDudosos;\n\nreturn finales;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        -16
+      ],
+      "id": "941afb89-fc28-483b-b1ad-840aee403d6d",
+      "name": "Limpiar y clasificar"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
           },
-          "options": {}
-        },
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.4,
-        "position": [
-          704,
-          -16
-        ],
-        "id": "bebcc7b7-af57-4379-beee-00906d962fbd",
-        "name": "¿Es dudoso?"
-      },
-      {
-        "parameters": {
-          "method": "POST",
-          "url": "{{ $json.tipo === 'abono' ? 'http://tienda:8000/api/apartados/' + $json.apartado_id + '/abonos' : 'http://tienda:8000/api/apartados' }}",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpHeaderAuth",
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify($json.payload) }}",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.5,
-        "position": [
-          880,
-          96
-        ],
-        "id": "c63274c3-2562-4590-9ebb-2587f8b7fd92",
-        "name": "Crear en la app",
-        "alwaysOutputData": true,
-        "credentials": {
-          "httpHeaderAuth": {
-            "id": "4lk8gf4dpWHLkEO2",
-            "name": "X-API-Key"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "jsCode": "// Los dudosos: viajan como campo, y 'Limpiar y clasificar' SIEMPRE se ejecuta\nconst plan = $('Limpiar y clasificar').all().map(i => i.json);\nconst dudosos = (plan[0] && plan[0].dudosos) ? plan[0].dudosos : [];\nconst planeados = plan.filter(x => x.tipo === 'apartado');\nconst abonosPlan = plan.filter(x => x.tipo === 'abono');\n\n// Lo que la app CREÓ de verdad. Si 'Crear en la app' no llegó a ejecutarse, aquí no hay nada.\nlet creados = [];\ntry {\n  creados = $('Crear en la app').all().map(i => i.json).filter(x => x && x.id);\n} catch (e) {\n  creados = [];\n}\nconst cApartados = creados.filter(x => x.producto !== undefined);\nconst cAbonos = creados.filter(x => x.apartado_id !== undefined);\n\nconst yaCargados = dudosos.filter(d => d.motivo.indexOf('no se duplica') >= 0);\nconst decidir = dudosos.filter(d => yaCargados.indexOf(d) === -1);\n\nconst l = [];\nl.push('MIGRACIÓN DEL EXCEL - ' + $now.toFormat('dd/MM/yyyy HH:mm'));\nl.push('');\nl.push('REALMENTE CREADO EN LA APP:');\nl.push('  Apartados: ' + cApartados.length + '  (planeados ' + planeados.length + ')');\nl.push('  Abonos: ' + cAbonos.length + '  (planeados ' + abonosPlan.length + ')');\nl.push('');\nl.push('YA ESTABAN CARGADOS (no se ha duplicado): ' + yaCargados.length);\nl.push('');\nl.push('PARA QUE DECIDAS (' + decidir.length + '):');\nif (decidir.length === 0) l.push('  (ninguno)');\nelse for (const d of decidir) l.push('  Linea ' + d.linea + ': ' + d.motivo);\nl.push('');\nl.push('Revisa en la app y dime que hacemos con los casos dudosos.');\n\nreturn [{ json: {\n  asunto: 'Migración: ' + cApartados.length + ' apartados y ' + cAbonos.length + ' abonos reales, ' + decidir.length + ' por revisar',\n  texto: l.join('\\n')\n}}];"
-        },
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          1072,
-          -16
-        ],
-        "id": "3749ed6c-059c-4846-a567-7835f4f8a251",
-        "name": "Informe"
-      },
-      {
-        "parameters": {
-          "fromEmail": "zapateria@example.com",
-          "toEmail": "marisa@zapateria.example",
-          "subject": "=={{ $json.asunto }}",
-          "emailFormat": "text",
-          "text": "=={{ $json.texto }}",
-          "options": {}
-        },
-        "type": "n8n-nodes-base.emailSend",
-        "typeVersion": 2.1,
-        "position": [
-          1216,
-          96
-        ],
-        "id": "35e7d26a-efd3-44b4-a347-908e56883eed",
-        "name": "Informe a Marisa",
-        "webhookId": "9673d04f-72dd-49df-86e8-88db31bbade9",
-        "credentials": {
-          "smtp": {
-            "id": "eHXPDCqGJYZp1rLm",
-            "name": "API Zapateria"
-          }
-        }
-      }
-    ],
-    "connections": {
-      "Ejecutar migración": {
-        "main": [
-          [
+          "conditions": [
             {
-              "node": "Apartados en la app",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Apartados en la app": {
-        "main": [
-          [
-            {
-              "node": "Abonos en la app",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Abonos en la app": {
-        "main": [
-          [
-            {
-              "node": "Read/Write Files from Disk",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Read/Write Files from Disk": {
-        "main": [
-          [
-            {
-              "node": "Extract from File",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Extract from File": {
-        "main": [
-          [
-            {
-              "node": "Limpiar y clasificar",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Limpiar y clasificar": {
-        "main": [
-          [
-            {
-              "node": "¿Es dudoso?",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "¿Es dudoso?": {
-        "main": [
-          [
-            {
-              "node": "Informe",
-              "type": "main",
-              "index": 0
+              "id": "8e6db786-191a-48bc-b239-f81fb1b124ac",
+              "leftValue": "={{ $json.tipo }}",
+              "rightValue": "nada",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
             }
           ],
-          [
-            {
-              "node": "Crear en la app",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+          "combinator": "and"
+        },
+        "options": {}
       },
-      "Crear en la app": {
-        "main": [
-          [
-            {
-              "node": "Informe",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        704,
+        -16
+      ],
+      "id": "bebcc7b7-af57-4379-beee-00906d962fbd",
+      "name": "¿Es dudoso?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{ $json.tipo === 'abono' ? 'http://tienda:8000/api/apartados/' + $json.apartado_id + '/abonos' : 'http://tienda:8000/api/apartados' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
       },
-      "Informe": {
-        "main": [
-          [
-            {
-              "node": "Informe a Marisa",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        96
+      ],
+      "id": "c63274c3-2562-4590-9ebb-2587f8b7fd92",
+      "name": "Crear en la app",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4lk8gf4dpWHLkEO2",
+          "name": "X-API-Key"
+        }
       }
     },
-    "settings": {
-      "executionOrder": "v1",
-      "binaryMode": "separate",
-      "errorWorkflow": "hu05avisoserror"
+    {
+      "parameters": {
+        "jsCode": "// Los dudosos: viajan como campo, y 'Limpiar y clasificar' SIEMPRE se ejecuta\nconst plan = $('Limpiar y clasificar').all().map(i => i.json);\nconst dudosos = (plan[0] && plan[0].dudosos) ? plan[0].dudosos : [];\nconst planeados = plan.filter(x => x.tipo === 'apartado');\nconst abonosPlan = plan.filter(x => x.tipo === 'abono');\n\n// Lo que la app CREÓ de verdad. Si 'Crear en la app' no llegó a ejecutarse, aquí no hay nada.\nlet creados = [];\ntry {\n  creados = $('Crear en la app').all().map(i => i.json).filter(x => x && x.id);\n} catch (e) {\n  creados = [];\n}\nconst cApartados = creados.filter(x => x.producto !== undefined);\nconst cAbonos = creados.filter(x => x.apartado_id !== undefined);\n\nconst yaCargados = dudosos.filter(d => d.motivo.indexOf('no se duplica') >= 0);\nconst decidir = dudosos.filter(d => yaCargados.indexOf(d) === -1);\n\nconst l = [];\nl.push('MIGRACIÓN DEL EXCEL - ' + $now.toFormat('dd/MM/yyyy HH:mm'));\nl.push('');\nl.push('REALMENTE CREADO EN LA APP:');\nl.push('  Apartados: ' + cApartados.length + '  (planeados ' + planeados.length + ')');\nl.push('  Abonos: ' + cAbonos.length + '  (planeados ' + abonosPlan.length + ')');\nl.push('');\nl.push('YA ESTABAN CARGADOS (no se ha duplicado): ' + yaCargados.length);\nl.push('');\nl.push('PARA QUE DECIDAS (' + decidir.length + '):');\nif (decidir.length === 0) l.push('  (ninguno)');\nelse for (const d of decidir) l.push('  Linea ' + d.linea + ': ' + d.motivo);\nl.push('');\nl.push('Revisa en la app y dime que hacemos con los casos dudosos.');\n\nreturn [{ json: {\n  asunto: 'Migración: ' + cApartados.length + ' apartados y ' + cAbonos.length + ' abonos reales, ' + decidir.length + ' por revisar',\n  texto: l.join('\\n')\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -16
+      ],
+      "id": "3749ed6c-059c-4846-a567-7835f4f8a251",
+      "name": "Informe"
     },
-    "staticData": null,
-    "meta": {
-      "templateCredsSetupCompleted": true
-    },
-    "nodeGroups": [],
-    "pinData": {},
-    "versionId": "1da847d2-dd68-44b8-af98-bea90289662f",
-    "activeVersionId": null,
-    "versionCounter": 92,
-    "triggerCount": 0,
-    "sourceWorkflowId": null,
-    "tags": [],
-    "versionMetadata": {
-      "name": null,
-      "description": null
+    {
+      "parameters": {
+        "fromEmail": "zapateria@example.com",
+        "toEmail": "marisa@zapateria.example",
+        "subject": "=={{ $json.asunto }}",
+        "emailFormat": "text",
+        "text": "=={{ $json.texto }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1216,
+        96
+      ],
+      "id": "35e7d26a-efd3-44b4-a347-908e56883eed",
+      "name": "Informe a Marisa",
+      "webhookId": "9673d04f-72dd-49df-86e8-88db31bbade9",
+      "credentials": {
+        "smtp": {
+          "id": "eHXPDCqGJYZp1rLm",
+          "name": "API Zapateria"
+        }
+      }
     }
+  ],
+  "connections": {
+    "Ejecutar migración": {
+      "main": [
+        [
+          {
+            "node": "Apartados en la app",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apartados en la app": {
+      "main": [
+        [
+          {
+            "node": "Abonos en la app",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abonos en la app": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Limpiar y clasificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar y clasificar": {
+      "main": [
+        [
+          {
+            "node": "¿Es dudoso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es dudoso?": {
+      "main": [
+        [
+          {
+            "node": "Informe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Crear en la app",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear en la app": {
+      "main": [
+        [
+          {
+            "node": "Informe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Informe": {
+      "main": [
+        [
+          {
+            "node": "Informe a Marisa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "hu05avisoserror"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "1da847d2-dd68-44b8-af98-bea90289662f",
+  "activeVersionId": null,
+  "versionCounter": 92,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
   }
-]
+}
