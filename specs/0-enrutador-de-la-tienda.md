@@ -125,18 +125,26 @@ HU-01 deja de tener webhook y pasa a ser llamada por el enrutador. Cambios:
 Todo lo demás (validación de datos, formato, IFs, reintentos, textos) **no se
 toca**.
 
-### 6.1. Ajuste en HU-05
+### 6.1. HU-05 no necesita cambios
 
-Cuando falla un subflujo, el error que ve el padre es genérico
-(`Error executing workflow with item at index 0`) y **el mensaje real viaja en
-`error.description`**. Para que el aviso siga siendo útil, en
-`Preparar aviso` se usará:
+Una primera lectura del código de `Execute Workflow` sugería que el padre fallaba
+con un mensaje genérico (`Error executing workflow with item at index 0`) y que el
+mensaje real viajaba en `error.description`, por lo que HU-05 tendría que usar
+`error.description || error.message`.
 
-```js
-const mensaje = limpiar(error.description || error.message, 300) || 'sin mensaje de error';
+**Comprobado en una instancia desechable con n8n 2.44.6** (enrutador + HU-01
+migrada, provocando un fallo real dentro de HU-01): el Error Trigger recibe ya el
+mensaje real del subflujo.
+
+```text
+error.message     : Credential with ID "..." does not exist for type "smtp".
+error.description : undefined
+nodo que falló    : Ejecutar HU-01
 ```
 
-Es un cambio de una línea en el flujo de la HU-05.
+Por tanto **HU-05 se queda como está**: no hay cambio de una línea que hacer. Se
+vuelve a comprobar en la prueba 7; si en esa prueba el aviso saliera genérico, se
+aplicaría entonces el cambio.
 
 ## 7. Error Workflow: una sola capa
 
@@ -151,8 +159,8 @@ otro del enrutador). Para evitarlo:
 
 Ventajas: cubre también los fallos del propio enrutador (por ejemplo, que el
 subflujo esté despublicado y no se pueda llamar) y siempre hay exactamente un
-aviso. En el aviso, el "paso" es el nodo `Ejecutar HU-01`, y el mensaje real es el
-del subflujo gracias a `error.description`.
+aviso. En el aviso, el "paso" es el nodo `Ejecutar HU-01` y el mensaje es el real
+del subflujo (verificado en 2.44.6, ver §6.1).
 
 En las pruebas se comprobará de forma explícita que llega **un solo** correo
 (§10, caso 7). Si en la práctica llegaran dos, se cambiará la regla a la inversa
@@ -190,6 +198,22 @@ En las pruebas se comprobará de forma explícita que llega **un solo** correo
 | 7. Fallo del subflujo | `POST` con `apartado.creado` y email inválido | **Un solo** aviso de HU-05, con `No recipients defined` |
 | 8. Prueba real | Crear un apartado desde la app | Correo al cliente, igual que antes |
 
+### 10.1. Comprobado antes de implementar
+
+Los casos 1, 2, 4 y parte del 7 se han probado en una instancia n8n **desechable**
+(volumen propio, ya borrado), sin tocar la instancia real:
+
+- `POST` con `apartado.creado` → `200` en ~200 ms; el enrutador ejecutó
+  `Entrada → Leer evento → ¿Qué evento es? → Ejecutar HU-01` y HU-01 recibió los
+  datos correctos (`¿Datos completos?` dio paso al correo).
+- `POST` con un evento desconocido → `200`; el enrutador terminó en
+  `Ignorar evento`, sin ejecución hija.
+- El fallo del subflujo disparó **una sola** ejecución de HU-05, así que la regla
+  de una sola capa de `errorWorkflow` se cumple.
+
+El único fallo que apareció fue el esperado: esa instancia no tiene la credencial
+SMTP (`SwfZwWbtMvYyq5bi`).
+
 ## 11. Decisiones pendientes
 
 - **`apartado.vencido`**: la app lo emite al vencer un apartado y hoy no lo
@@ -210,7 +234,8 @@ En las pruebas se comprobará de forma explícita que llega **un solo** correo
 1. Crear la rama desde el tablero (la del issue correspondiente).
 2. Importar el enrutador y publicarlo.
 3. Migrar HU-01 a subflujo, publicarla y reexportar.
-4. Ajustar HU-05 (`error.description`) y reexportar.
-5. Ejecutar la tabla de pruebas de §10.
-6. Documentar en `docs/ai-log.md`, añadir el enlace al issue #31 en
-   `specs/8-avisos-de-errores.md` y abrir PR a `dev`.
+4. Ejecutar la tabla de pruebas de §10.
+5. Documentar en `docs/ai-log.md` y abrir PR a `dev`.
+
+HU-05 no se toca (§6.1). El enlace al issue #31 en
+`specs/8-avisos-de-errores.md` ya está hecho en la rama de esta especificación.
