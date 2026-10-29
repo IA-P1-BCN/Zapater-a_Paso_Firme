@@ -141,3 +141,43 @@ Registro de las interacciones con el agente de IA: herramienta y modelos utiliza
 | Mensaje de 500 caracteres | Recortado a 300 con `...` |
 | Fallo real de HU-01 (correo inválido) | Aviso con flujo, paso, mensaje y enlace a la ejecución |
 | Ejecución correcta de HU-01 | Sin aviso |
+
+## Flujo 0 - Enrutador de la tienda
+
+- **Fecha:** 2026-10-29
+- **Herramienta:** OpenCode (Beam Free), con subagentes explore y general.
+- **Rama:**  -enrutador-implementacion
+- **Spec:** specs/0-enrutador-de-la-tienda.md (mergeada en dev con #32 y corregida con #33)
+
+### Que se ha hecho
+
+- Flujo  0. Enrutador de la tienda creado: webhook POST /tienda con respuesta
+  inmediata, Code Leer evento (nunca falla) y Switch por evento, que llama a
+  HU-01 con Execute Workflow y deja los demas eventos en Ignorar evento.
+- HU-01 migrada a subflujo: webhook y Switch eliminados, Code Preparar mensaje
+  usa $json.body || , y se le quita settings.errorWorkflow.
+- settings.errorWorkflow = hu05avisoserror solo en el enrutador.
+- HU-05 sin cambios: en n8n 2.44.6 el Error Trigger ya recibe el mensaje real en
+  error.message (no en error.description).
+
+### Pruebas (instancia real)
+
+| Caso | Resultado |
+|---|---|
+| 1. partado.creado completo | 200 inmediato; HU-01 envia el correo al cliente |
+| 2. bono.registrado | 200; se ignora (sin ejecucion hija) |
+| 3. Cuerpo vacio {} | 200; se ignora |
+| 4. Evento desconocido | 200; se ignora |
+| 5. partado.creado con datos: {} | HU-01 envia el aviso de datos incompletos |
+| 6. Ruta unica /tienda | Una sola fila en webhook_entity |
+| 7. Fallo del subflujo (email invalido) | Un solo aviso de HU-05, con el mensaje real |
+| 8. Apartado creado desde la app (id 28) | Correo al cliente, igual que antes |
+
+### Problema encontrado y resuelto
+
+Al publicar el enrutador, la activacion fallaba con
+"SQLITE_CONSTRAINT: UNIQUE constraint failed" porque un outbox anterior de HU-01
+intentaba registrar el mismo webhook /tienda. Se reseteo el estado de
+publicacion del enrutador (workflow_publication_trigger_status,
+workflow_publication_outbox, workflow_publication_retry_state) y se publico
+de nuevo; a partir de ahi el webhook quedo registrado correctamente.
