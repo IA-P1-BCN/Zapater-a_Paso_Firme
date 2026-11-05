@@ -3,7 +3,7 @@
 **Issue:** #1  
 **Nivel:** Esencial  
 **Flujo:** 1 — Confirmación al apartar  
-**Estado:** Especificación técnica pendiente de validar los detalles de envío
+**Estado:** Implementado en n8n y probado con datos de ejemplo; pendiente de revisión humana
 
 ## 1. Objetivo
 
@@ -104,7 +104,11 @@ El envío debe completarse en menos de un minuto desde la creación del apartado
 
 Cuando no haya correo electrónico disponible, el workflow debe avisar a la tienda de que no se ha podido enviar la confirmación.
 
-**Pendiente de definir:** canal, destinatario y contenido exacto del aviso.
+- **Canal:** correo electrónico por SMTP (en local, el buzón de pruebas Mailpit).
+- **Destinatario:** la tienda (`marisa@pasofirme.es`).
+- **Contenido:** número de apartado, cliente, teléfono, producto, talla, importes, fecha límite y el motivo del aviso.
+
+Cuando el evento llegue sin los datos obligatorios, el workflow tampoco envía la confirmación y avisa a la tienda indicando qué campos faltan y el apartado afectado.
 
 ## 7. Gestión de errores
 
@@ -113,32 +117,35 @@ Cuando no haya correo electrónico disponible, el workflow debe avisar a la tien
 - **Error de envío:** registrar el fallo y no considerar la confirmación enviada si el servicio no lo ha confirmado.
 - **Error inesperado:** conservar contexto suficiente para facilitar su revisión.
 
-La estrategia de reintentos y la prevención de mensajes duplicados deben definirse antes de implementar el workflow.
+Estrategia de reintentos y prevención de mensajes duplicados:
+
+- **Reintentos:** los tres nodos de envío reintentan 3 veces con 5 segundos de espera entre intentos. Si aun así falla, la ejecución queda como error.
+- **Error Workflow:** el flujo `HU-05. Avisar de errores` recibe el fallo y envía a la tienda el flujo, el paso, el mensaje de error y el enlace a la ejecución.
+- **Duplicados:** el workflow solo envía cuando la aplicación avisa de un `apartado.creado`; no programa envíos propios, por lo que no reenvía confirmaciones por su cuenta.
 
 El servicio actual de notificación de la aplicación a n8n utiliza un timeout de cinco segundos y registra una advertencia si no puede enviar el evento. No se ha verificado una estrategia de reintentos en ese servicio.
 
 ## 8. Criterios de aceptación
 
-- [ ] La creación de un apartado activa el workflow mediante el evento `apartado.creado`.
-- [ ] El cliente recibe la confirmación en menos de un minuto.
-- [ ] El mensaje incluye el producto y la talla, cuando estos datos están disponibles.
-- [ ] El mensaje incluye el precio total, el importe abonado y el importe pendiente.
-- [ ] El mensaje incluye la fecha límite.
-- [ ] Los importes y la fecha coinciden con los valores de la aplicación.
-- [ ] Si el cliente no tiene correo electrónico, el workflow no falla únicamente por esa causa y avisa a la tienda.
-- [ ] Los errores técnicos pueden identificarse y revisarse.
-- [ ] El workflow no accede directamente a la base de datos ni sustituye las reglas de negocio de la aplicación.
+- [x] La creación de un apartado activa el workflow mediante el evento `apartado.creado`.
+- [x] El cliente recibe la confirmación en menos de un minuto.
+- [x] El mensaje incluye el producto y la talla, cuando estos datos están disponibles.
+- [x] El mensaje incluye el precio total, el importe abonado y el importe pendiente.
+- [x] El mensaje incluye la fecha límite.
+- [x] Los importes y la fecha coinciden con los valores de la aplicación.
+- [x] Si el cliente no tiene correo electrónico, el workflow no falla únicamente por esa causa y avisa a la tienda.
+- [x] Los errores técnicos pueden identificarse y revisarse.
+- [x] El workflow no accede directamente a la base de datos ni sustituye las reglas de negocio de la aplicación.
 
-## 9. Dependencias y decisiones pendientes
+## 9. Decisiones tomadas
 
-Antes de dar por finalizado el workflow, confirmar:
-
-- El payload real recibido por n8n en una ejecución de prueba.
-- El servicio de correo que se utilizará y la configuración segura de sus credenciales.
-- El canal y destinatario de los avisos a la tienda.
-- La estrategia de reintentos y prevención de duplicados.
-- El tratamiento de los campos opcionales `email` y `talla`.
-- Las pruebas de aceptación y sus resultados esperados.
+- **Payload real:** confirmado. La app envía `{ "evento": "apartado.creado", "datos": {...} }` con los campos de `ApartadoOut`.
+- **Servicio de correo:** SMTP configurado como credencial de n8n (en local, Mailpit). Las credenciales no están en el JSON del flujo.
+- **Canal de avisos a la tienda:** correo a `marisa@pasofirme.es`.
+- **Reintentos:** 3 intentos con 5 segundos de espera entre ellos y Error Workflow `HU-05. Avisar de errores`.
+- **Campos opcionales:** `email` ausente o vacío → aviso a la tienda sin intentar el envío; `talla` ausente → el mensaje omite la talla.
+- **Formato del mensaje:** correo en texto plano, importes en formato español (`45,00 €`) y fechas `dd/mm/aaaa`.
+- **Flujos exportados:** `workflows/HU-01-confirmacion-al-apartar.json` y `workflows/HU-05-avisar-de-errores.json`.
 
 ## 10. Fuera de alcance
 
